@@ -1,17 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
-function getNextStudentID(lastStudentID) {
-  if (!lastStudentID || typeof lastStudentID !== 'string') {
-    return 'SIC-00001';
+function getNextStudentID(studentIds) {
+  if (!studentIds || studentIds.length === 0) {
+    return 'SIC-1';
   }
 
-  const match = lastStudentID.match(/^SIC-(\d{5})$/);
-  if (!match) {
-    return 'SIC-00001';
-  }
+  let maxNum = 0;
+  studentIds.forEach(row => {
+    const id = row.student_id;
+    if (id && typeof id === 'string') {
+      const match = id.match(/^SIC-(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+  });
 
-  const nextNumber = parseInt(match[1], 10) + 1;
-  return `SIC-${String(nextNumber).padStart(5, '0')}`;
+  return `SIC-${maxNum + 1}`;
 }
 
 export async function GET() {
@@ -22,21 +30,18 @@ export async function GET() {
     );
 
     const { data, error } = await supabase
-      .from('StudentDetails')
-      .select('StudentID')
-      .order('StudentID', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .from('students')
+      .select('student_id');
 
     if (error) {
       console.error('Supabase error:', error);
       return Response.json(
-        { success: false, error: error.message, StudentID: 'SIC-00001' },
+        { success: false, error: error.message, StudentID: 'SIC-1' },
         { status: 400 }
       );
     }
 
-    const nextStudentID = getNextStudentID(data?.StudentID);
+    const nextStudentID = getNextStudentID(data);
 
     return Response.json(
       { success: true, StudentID: nextStudentID },
@@ -45,8 +50,9 @@ export async function GET() {
   } catch (error) {
     console.error('API error:', error);
     return Response.json(
-      { success: false, error: error.message, StudentID: 'SIC-00001' },
+      { success: false, error: error.message, StudentID: 'SIC-1' },
       { status: 500 }
     );
   }
 }
+

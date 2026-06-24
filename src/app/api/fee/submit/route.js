@@ -1,40 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-
-const MONTH_COLUMNS = [
-  'AprilFee',
-  'MayFee',
-  'JuneFee',
-  'JulyFee',
-  'AugustFee',
-  'SeptFee',
-  'OctFee',
-  'NovFee',
-  'DecFee',
-  'JanFee',
-  'FebFee',
-  'MarchFee',
-];
-
-function getMonthColumnByDate(dateValue) {
-  // Parse YYYY-MM-DD safely to avoid timezone shifts.
-  const parts = String(dateValue).split('-');
-  const monthIndex = parts.length >= 2 ? Number(parts[1]) - 1 : new Date(dateValue).getMonth();
-  const byCalendarMonth = {
-    0: 'JanFee',
-    1: 'FebFee',
-    2: 'MarchFee',
-    3: 'AprilFee',
-    4: 'MayFee',
-    5: 'JuneFee',
-    6: 'JulyFee',
-    7: 'AugustFee',
-    8: 'SeptFee',
-    9: 'OctFee',
-    10: 'NovFee',
-    11: 'DecFee',
-  };
-  return byCalendarMonth[monthIndex];
-}
+import { getSequentialSlips } from '@/lib/slips';
 
 function isValidDate(value) {
   if (!value) return false;
@@ -43,123 +8,39 @@ function isValidDate(value) {
 }
 
 function toNonNegativeNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
+  if (value === null || value === undefined || value === '') return 0;
   const parsed = Number(value);
-  if (Number.isNaN(parsed) || parsed < 0) return Number.NaN;
+  if (Number.isNaN(parsed) || parsed < 0) return 0;
   return parsed;
 }
 
-function generateNextSlipNo(lastSlipNo) {
-  if (!lastSlipNo || typeof lastSlipNo !== 'string') {
-    return 'SICF-00001';
-  }
-
-  const match = lastSlipNo.match(/^SICF-(\d{5})$/);
-  if (!match) return 'SICF-00001';
-
-  const nextNumber = parseInt(match[1], 10) + 1;
-  return `SICF-${String(nextNumber).padStart(5, '0')}`;
-}
-
 function normalizePayload(payload) {
-  // Accept either exact DB names or friendlier camelCase keys.
   return {
     StudentID: payload.StudentID ?? payload.studentID ?? null,
     Date: payload.Date ?? payload.date ?? null,
     StudentName: payload.StudentName ?? payload.studentName ?? null,
-    'Father/Mother Name':
-      payload['Father/Mother Name'] ??
-      payload.fatherMotherName ??
-      payload.parentName ??
-      null,
     Class: payload.Class ?? payload.class ?? null,
-    MonthFee: payload.MonthFee ?? payload.monthFee ?? null,
-    AdmissionFee: payload.AdmissionFee ?? payload.admissionFee ?? null,
-    BooksStationary: payload.BooksStationary ?? payload.booksStationary ?? null,
-    TotalReceived: payload.TotalReceived ?? payload.totalReceived ?? null,
+    MonthFee: toNonNegativeNumber(payload.MonthFee ?? payload.monthFee),
+    AdmissionFee: toNonNegativeNumber(payload.AdmissionFee ?? payload.admissionFee),
+    BooksStationary: toNonNegativeNumber(payload.BooksStationary ?? payload.booksStationary),
   };
-}
-
-function validateAndSanitize(data) {
-  const errors = {};
-
-  if (!data.StudentID || typeof data.StudentID !== 'string') {
-    errors.StudentID = 'StudentID is required.';
-  }
-
-  if (!isValidDate(data.Date)) {
-    errors.Date = 'Date must be a valid date.';
-  }
-
-  if (!data.StudentName || typeof data.StudentName !== 'string') {
-    errors.StudentName = 'StudentName is required.';
-  }
-
-  if (!data['Father/Mother Name'] || typeof data['Father/Mother Name'] !== 'string') {
-    errors['Father/Mother Name'] = 'Father/Mother Name is required.';
-  }
-
-  const classValue = Number(data.Class);
-  if (!Number.isInteger(classValue) || classValue <= 0) {
-    errors.Class = 'Class must be a positive integer.';
-  }
-
-  const sanitized = {
-    StudentID: data.StudentID,
-    Date: data.Date,
-    StudentName: data.StudentName,
-    'Father/Mother Name': data['Father/Mother Name'],
-    Class: Number.isInteger(classValue) ? classValue : null,
-  };
-
-  const monthFeeValue = toNonNegativeNumber(data.MonthFee);
-  if (Number.isNaN(monthFeeValue)) {
-    errors.MonthFee = 'MonthFee must be a non-negative number.';
-  }
-
-  const monthColumn = getMonthColumnByDate(data.Date);
-  MONTH_COLUMNS.forEach((column) => {
-    sanitized[column] = null;
-  });
-  if (monthColumn) {
-    sanitized[monthColumn] = monthFeeValue;
-  }
-
-  const admissionFeeValue = toNonNegativeNumber(data.AdmissionFee);
-  if (Number.isNaN(admissionFeeValue)) {
-    errors.AdmissionFee = 'AdmissionFee must be a non-negative number.';
-  }
-  sanitized.AdmissionFee = admissionFeeValue;
-
-  const booksStationaryValue = toNonNegativeNumber(data.BooksStationary);
-  if (Number.isNaN(booksStationaryValue)) {
-    errors.BooksStationary = 'BooksStationary must be a non-negative number.';
-  }
-  sanitized.BooksStationary = booksStationaryValue;
-
-  const computedTotal =
-    (monthFeeValue || 0) +
-    (admissionFeeValue || 0) +
-    (booksStationaryValue || 0);
-
-  const providedTotal = toNonNegativeNumber(data.TotalReceived);
-  if (Number.isNaN(providedTotal)) {
-    errors.TotalReceived = 'TotalReceived must be a non-negative number.';
-  }
-  sanitized.TotalReceived = providedTotal ?? computedTotal;
-
-  return { errors, sanitized };
 }
 
 export async function POST(request) {
   try {
     const payload = await request.json();
     const normalized = normalizePayload(payload);
-    const { errors, sanitized } = validateAndSanitize(normalized);
 
-    if (Object.keys(errors).length > 0) {
+    if (!normalized.StudentID) {
       return Response.json(
-        { success: false, error: 'Validation failed.', validationErrors: errors },
+        { success: false, error: 'StudentID is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidDate(normalized.Date)) {
+      return Response.json(
+        { success: false, error: 'Date must be a valid date.' },
         { status: 400 }
       );
     }
@@ -169,28 +50,73 @@ export async function POST(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const { data: lastRow, error: readError } = await supabase
-      .from('FeeDetails')
-      .select('SlipNo')
-      .order('SlipNo', { ascending: false })
+    // Resolve current academic year from student's latest enrollment
+    const { data: enrollment, error: enrollErr } = await supabase
+      .from('student_enrollments')
+      .select('academic_year')
+      .eq('student_id', normalized.StudentID)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (readError) {
-      console.error('Supabase read error:', readError);
+    if (enrollErr) {
+      console.error('Error fetching enrollment:', enrollErr);
+    }
+
+    const academicYear = enrollment?.academic_year || '2026-2027';
+    const datePaid = normalized.Date;
+    const dateObj = new Date(datePaid);
+    const monthPaid = dateObj.toLocaleString('default', { month: 'short' }); // e.g. "Jun"
+
+    const transactionsToInsert = [];
+
+    if (normalized.MonthFee > 0) {
+      transactionsToInsert.push({
+        student_id: normalized.StudentID,
+        academic_year: academicYear,
+        date_paid: datePaid,
+        fee_head: 'Monthly Tuition',
+        month_paid: monthPaid,
+        amount_received: normalized.MonthFee,
+        collected_by: 'Account Manager',
+      });
+    }
+
+    if (normalized.AdmissionFee > 0) {
+      transactionsToInsert.push({
+        student_id: normalized.StudentID,
+        academic_year: academicYear,
+        date_paid: datePaid,
+        fee_head: 'Admission Fee',
+        month_paid: monthPaid,
+        amount_received: normalized.AdmissionFee,
+        collected_by: 'Account Manager',
+      });
+    }
+
+    if (normalized.BooksStationary > 0) {
+      transactionsToInsert.push({
+        student_id: normalized.StudentID,
+        academic_year: academicYear,
+        date_paid: datePaid,
+        fee_head: 'Books/Stationary',
+        month_paid: monthPaid,
+        amount_received: normalized.BooksStationary,
+        collected_by: 'Account Manager',
+      });
+    }
+
+    if (transactionsToInsert.length === 0) {
       return Response.json(
-        { success: false, error: readError.message },
+        { success: false, error: 'At least one fee head must be greater than zero.' },
         { status: 400 }
       );
     }
 
-    const nextSlipNo = generateNextSlipNo(lastRow?.SlipNo);
-
     const { data, error } = await supabase
-      .from('FeeDetails')
-      .insert([{ SlipNo: nextSlipNo, ...sanitized }])
-      .select()
-      .single();
+      .from('fee_transactions')
+      .insert(transactionsToInsert)
+      .select();
 
     if (error) {
       console.error('Supabase insert error:', error);
@@ -200,11 +126,25 @@ export async function POST(request) {
       );
     }
 
+    // Fetch all transactions to compute the correct sequential slip number
+    const { data: allTxs, error: allTxsErr } = await supabase
+      .from('fee_transactions')
+      .select('id, student_id, date_paid, created_at');
+
+    let slipNo = `SICF-${data[0].id.split('-')[0].toUpperCase()}`;
+    if (!allTxsErr && allTxs) {
+      const { slipMap } = getSequentialSlips(allTxs);
+      slipNo = slipMap.get(data[0].id) || slipNo;
+    }
+
     return Response.json(
       {
         success: true,
         message: 'Fee submitted successfully!',
-        data,
+        data: {
+          SlipNo: slipNo,
+          transactions: data,
+        },
       },
       { status: 200 }
     );
@@ -216,3 +156,4 @@ export async function POST(request) {
     );
   }
 }
+

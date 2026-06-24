@@ -17,42 +17,65 @@ export async function GET(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const { data, error } = await supabase
-      .from('StudentDetails')
-      .select('StudentID, StudentName, FatherName, MotherName, Class')
-      .eq('StudentID', studentID)
+    // Fetch student profile and parents info
+    const { data: student, error: studentError } = await supabase
+      .from('students')
+      .select(`
+        student_id,
+        student_name,
+        father_name,
+        mother_name,
+        status,
+        parents_guardian (father_name, mother_name)
+      `)
+      .eq('student_id', studentID)
       .maybeSingle();
 
-    if (error) {
+    if (studentError) {
       return Response.json(
-        { success: false, error: error.message },
+        { success: false, error: studentError.message },
         { status: 400 }
       );
     }
 
-    if (!data) {
+    if (!student) {
       return Response.json(
         { success: false, error: 'Student not found.' },
         { status: 404 }
       );
     }
 
-    // Fetch latest balance from summary view (if available).
-    const { data: summaryData } = await supabase
-      .from('studentfinancialsummary')
-      .select('balance')
-      .eq('StudentID', studentID)
+    // Fetch latest balance and class details from the view
+    const { data: balanceData } = await supabase
+      .from('student_fee_balances')
+      .select('class_assigned, remaining_balance')
+      .eq('student_id', studentID)
       .maybeSingle();
+
+
+    const parent = student.parents_guardian?.[0];
+    const fatherName = student.father_name || parent?.father_name;
+    const motherName = student.mother_name || parent?.mother_name;
+    const fatherMotherName = [fatherName, motherName]
+      .filter(Boolean)
+      .join(' / ');
+
+    const status = student.status || 'active';
+    let balance = balanceData?.remaining_balance ?? 0;
+    if (status === 'left') {
+      balance = 0;
+    }
 
     return Response.json(
       {
         success: true,
         data: {
-          StudentID: data.StudentID,
-          StudentName: data.StudentName ?? '',
-          fatherMotherName: [data.FatherName, data.MotherName].filter(Boolean).join(' / '),
-          Class: data.Class ?? '',
-          balance: summaryData?.balance ?? 0,
+          StudentID: student.student_id,
+          StudentName: student.student_name || '',
+          fatherMotherName: fatherMotherName || '',
+          Class: balanceData?.class_assigned || 'Not Enrolled',
+          balance: balance,
+          status: status,
         },
       },
       { status: 200 }
@@ -64,3 +87,4 @@ export async function GET(request) {
     );
   }
 }
+

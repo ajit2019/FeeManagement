@@ -39,6 +39,8 @@ const emptyFormFields = {
   parentsSignature: '',
   classTeacher: '',
   principal: '',
+  computerClasses: 'no',
+  tanNumber: '',
 };
 
 export default function AdmissionForm() {
@@ -108,6 +110,8 @@ export default function AdmissionForm() {
     LastSchoolName: 'lastSchoolName',
     TC_Submitted: 'tcSubmitted',
     BirthCertificateSubmitted: 'birthCertSubmitted',
+    tan_number: 'tanNumber',
+    opt_computer_class: 'computerClasses',
   };
 
   const handleReset = async (showConfirm = true) => {
@@ -146,6 +150,8 @@ export default function AdmissionForm() {
       LastSchoolName: formData.lastSchoolName || null,
       TC_Submitted: formData.tcSubmitted === 'yes',
       BirthCertificateSubmitted: formData.birthCertSubmitted === 'yes',
+      ComputerClasses: formData.computerClasses,
+      TanNumber: formData.tanNumber || null,
       Subject1: formData.subject1 || null,
       Subject2: formData.subject2 || null,
       Subject3: formData.subject3 || null,
@@ -231,7 +237,6 @@ export default function AdmissionForm() {
                   value={formData.date}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
                 {validationErrors.date && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.date}</p>
@@ -301,14 +306,13 @@ export default function AdmissionForm() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Date of Birth *</label>
+                <label className="block text-sm font-semibold mb-1">Date of Birth</label>
                 <input
                   type="date"
                   name="dob"
                   value={formData.dob}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
                 {validationErrors.dob && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.dob}</p>
@@ -372,6 +376,18 @@ export default function AdmissionForm() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">TAN Number</label>
+                <input
+                  type="text"
+                  name="tanNumber"
+                  value={formData.tanNumber}
+                  onChange={handleInputChange}
+                  placeholder="10-character TAN"
+                  maxLength="10"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -418,7 +434,7 @@ export default function AdmissionForm() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Mobile No. *</label>
+                <label className="block text-sm font-semibold mb-1">Mobile No.</label>
                 <input
                   type="tel"
                   name="mobileNo"
@@ -427,7 +443,6 @@ export default function AdmissionForm() {
                   placeholder="10-digit number"
                   maxLength="10"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
                 {validationErrors.mobileNo && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.mobileNo}</p>
@@ -440,14 +455,13 @@ export default function AdmissionForm() {
           <div className="border-b-2 border-blue-300 pb-6">
             <h2 className="text-xl font-bold text-blue-600 mb-4">4. ADDRESS INFORMATION</h2>
             <div>
-              <label className="block text-sm font-semibold mb-1">Address *</label>
+              <label className="block text-sm font-semibold mb-1">Address</label>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
                 rows="3"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
               />
               {validationErrors.address && (
                 <p className="text-red-600 text-sm mt-1">{validationErrors.address}</p>
@@ -470,14 +484,13 @@ export default function AdmissionForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Total Annual Fees *</label>
+                <label className="block text-sm font-semibold mb-1">Total Annual Fees</label>
                 <input
                   type="number"
                   name="totalFees"
                   value={formData.totalFees}
                   onChange={handleInputChange}
                   placeholder="Amount in INR"
-                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {validationErrors.totalFees && (
@@ -504,6 +517,18 @@ export default function AdmissionForm() {
                 <select
                   name="birthCertSubmitted"
                   value={formData.birthCertSubmitted}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Computer Classes</label>
+                <select
+                  name="computerClasses"
+                  value={formData.computerClasses}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >

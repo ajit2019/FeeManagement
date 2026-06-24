@@ -24,7 +24,23 @@ export default function FeeFormPage() {
   const [isFetchingStudent, setIsFetchingStudent] = useState(false);
   const [studentLookupError, setStudentLookupError] = useState('');
   const [lastSlipNo, setLastSlipNo] = useState('');
+  const [nextSlipNo, setNextSlipNo] = useState('Fetching...');
   const [balanceFee, setBalanceFee] = useState(0);
+
+  const fetchNextSlipNo = async () => {
+    try {
+      const response = await fetch('/api/fee/next-slip-no');
+      const result = await response.json();
+      if (result.success) {
+        setNextSlipNo(result.nextSlipNo);
+      } else {
+        setNextSlipNo('SICF-00001');
+      }
+    } catch (error) {
+      console.error('Error fetching next slip number:', error);
+      setNextSlipNo('SICF-00001');
+    }
+  };
 
   const totalReceived = useMemo(() => {
     const monthFee = parseFloat(formData.MonthFee || 0);
@@ -77,6 +93,7 @@ export default function FeeFormPage() {
       ...prev,
       Date: getTodayDate(),
     }));
+    fetchNextSlipNo();
   }, []);
 
   const fetchStudentDetails = async () => {
@@ -98,6 +115,7 @@ export default function FeeFormPage() {
           StudentName: '',
           fatherMotherName: '',
           Class: '',
+          status: '',
         }));
         return;
       }
@@ -107,6 +125,7 @@ export default function FeeFormPage() {
         StudentName: result.data.StudentName || '',
         fatherMotherName: result.data.fatherMotherName || '',
         Class: result.data.Class ? String(result.data.Class) : '',
+        status: result.data.status || 'active',
       }));
       setBalanceFee(Number(result.data.balance ?? 0));
     } catch (error) {
@@ -117,10 +136,35 @@ export default function FeeFormPage() {
     }
   };
 
+  // Automatically fetch student details as soon as the user types/enters a Student ID
+  useEffect(() => {
+    if (!formData.StudentID) {
+      setFormData((prev) => ({
+        ...prev,
+        StudentName: '',
+        fatherMotherName: '',
+        Class: '',
+        status: '',
+      }));
+      setBalanceFee(0);
+      setStudentLookupError('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchStudentDetails();
+    }, 400); // 400ms debounce to prevent spamming API requests on every keystroke
+
+    return () => clearTimeout(timer);
+  }, [formData.StudentID]);
+
   const submitFeeToApi = async () => {
+    const parsedClass = formData.Class && !isNaN(parseInt(formData.Class, 10))
+      ? parseInt(formData.Class, 10)
+      : formData.Class || null;
     const payload = {
       ...formData,
-      Class: formData.Class ? parseInt(formData.Class, 10) : null,
+      Class: parsedClass,
       TotalReceived: totalReceived,
     };
 
@@ -147,6 +191,7 @@ export default function FeeFormPage() {
         ...initialFormData,
         Date: getTodayDate(),
       });
+      fetchNextSlipNo();
     } catch (error) {
       alert(`Submission failed: ${error.message}`);
     }
@@ -154,6 +199,10 @@ export default function FeeFormPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.status === 'left') {
+      alert('Cannot submit fees for a student who has left the school.');
+      return;
+    }
     setValidationErrors({});
     setIsSubmitting(true);
     handlePrint();
@@ -180,9 +229,9 @@ export default function FeeFormPage() {
                 <label className="block text-sm font-semibold mb-1">Slip No</label>
                 <input
                   type="text"
-                  value="Auto-generated on submit (SICF-00001)"
+                  value={nextSlipNo}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 font-semibold text-blue-700"
                 />
               </div>
               <div>
@@ -206,6 +255,16 @@ export default function FeeFormPage() {
                 {studentLookupError && (
                   <p className="text-red-600 text-sm mt-1">{studentLookupError}</p>
                 )}
+                {formData.status === 'left' && (
+                  <p className="text-red-600 text-sm mt-1 font-semibold">
+                    This student has left the school. Fee collection is disabled.
+                  </p>
+                )}
+                {formData.status === 'inactive' && (
+                  <p className="text-amber-600 text-sm mt-1 font-semibold">
+                    Warning: Student is inactive (not attending class). Check status before submitting.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1">Date *</label>
@@ -223,14 +282,27 @@ export default function FeeFormPage() {
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1">Student Name *</label>
-                <input
-                  type="text"
-                  name="StudentName"
-                  value={formData.StudentName}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                  required
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="StudentName"
+                    value={formData.StudentName}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                    required
+                  />
+                  {formData.status && (
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded text-xs font-bold uppercase ${
+                      formData.status === 'active'
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : formData.status === 'left'
+                          ? 'bg-red-100 text-red-800 border border-red-200'
+                          : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {formData.status}
+                    </span>
+                  )}
+                </div>
                 {validationErrors.StudentName && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.StudentName}</p>
                 )}
@@ -254,11 +326,10 @@ export default function FeeFormPage() {
               <div>
                 <label className="block text-sm font-semibold mb-1">Class *</label>
                 <input
-                  type="number"
+                  type="text"
                   name="Class"
                   value={formData.Class}
                   readOnly
-                  min="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                   required
                 />
@@ -368,6 +439,7 @@ export default function FeeFormPage() {
         <div className="hidden">
           <div ref={receiptRef} className="p-6 text-black">
             <h2 className="text-2xl font-bold mb-4">Fee Receipt</h2>
+            <p><strong>Slip No:</strong> {nextSlipNo}</p>
             <p><strong>Date:</strong> {formData.Date}</p>
             <p><strong>Student ID:</strong> {formData.StudentID}</p>
             <p><strong>Student Name:</strong> {formData.StudentName}</p>

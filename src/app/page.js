@@ -8,6 +8,7 @@ export default function Home() {
         <h1 className="text-4xl font-bold">Fee Management</h1>
         <nav className="space-y-2 mt-6">
           <a href="/admission" className="block text-blue-600 hover:text-blue-800 font-semibold">Student Admission Form</a>
+          <a href="/studentdetails" className="block text-blue-600 hover:text-blue-800 font-semibold">Student Admission Registry</a>
           <a href="/fee" className="block text-blue-600 hover:text-blue-800 font-semibold">Fee Submission Form</a>
           <a href="/balance" className="block text-blue-600 hover:text-blue-800 font-semibold">Class Balance Summary</a>
           <a href="/about" className="block text-blue-600 hover:text-blue-800 font-semibold">About</a>
