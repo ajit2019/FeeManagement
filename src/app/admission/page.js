@@ -217,11 +217,98 @@ export default function AdmissionForm() {
 
   return (
     <div ref={printRef} className="min-h-screen bg-gray-100 py-8 px-4">
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 4mm 8mm 4mm 8mm;
+          }
+          body {
+            background-color: white !important;
+            color: black !important;
+            font-size: 10px !important;
+          }
+          .min-h-screen {
+            min-height: 0 !important;
+            background: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .max-w-4xl {
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          form {
+            gap: 0.15rem !important;
+            margin-top: 0.15rem !important;
+          }
+          .space-y-6 > * + * {
+            margin-top: 0.2rem !important;
+          }
+          .pb-6 {
+            padding-bottom: 0.15rem !important;
+          }
+          .mb-8 {
+            margin-bottom: 0.25rem !important;
+          }
+          .mb-4 {
+            margin-bottom: 0.15rem !important;
+          }
+          .mb-3 {
+            margin-bottom: 0.15rem !important;
+          }
+          .mt-4 {
+            margin-top: 0.15rem !important;
+          }
+          .grid {
+            gap: 0.25rem !important;
+          }
+          input, select, textarea {
+            padding-top: 0.1rem !important;
+            padding-bottom: 0.1rem !important;
+            padding-left: 0.3rem !important;
+            padding-right: 0.3rem !important;
+            font-size: 10px !important;
+            border: 1px solid #ccc !important;
+            background-color: transparent !important;
+            border-radius: 2px !important;
+            line-height: 1.1 !important;
+            height: auto !important;
+          }
+          label {
+            font-size: 9px !important;
+            margin-bottom: 0px !important;
+          }
+          h1 {
+            font-size: 20px !important;
+            margin-bottom: 2px !important;
+          }
+          h2 {
+            font-size: 11px !important;
+            margin-bottom: 0.15rem !important;
+          }
+          h3 {
+            font-size: 10px !important;
+            margin-bottom: 0.15rem !important;
+            margin-top: 0.15rem !important;
+          }
+          .border-b-2 {
+            border-bottom-width: 1px !important;
+          }
+          button, .flex.justify-center.pt-6, .text-center.text-gray-500.text-sm.mt-8.pt-6 {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-600">SCHOOL ADMISSION FORM</h1>
-          <p className="text-gray-600 mt-2">Academic Session 2024-2025</p>
+          <h1 className="text-3xl font-extrabold text-black uppercase tracking-wide">SIC Mahuli-Duddhi</h1>
+          <h2 className="text-xl font-bold text-blue-600 mt-1">SCHOOL ADMISSION FORM</h2>
+          <p className="text-gray-600 text-sm mt-1">Academic Session 2024-2025</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -569,7 +656,7 @@ export default function AdmissionForm() {
           </div>
 
           {/* Section 6: Signatures */}
-          <div className="border-b-2 border-blue-300 pb-6">
+          <div className="border-b-2 border-blue-300 pb-6 print:hidden">
             <h2 className="text-xl font-bold text-blue-600 mb-4">6. SIGNATURES & APPROVAL</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -635,6 +722,28 @@ export default function AdmissionForm() {
             </button>
           </div>
         </form>
+
+        {/* Print-only signatures block without borders or boxes */}
+        <div className="hidden print:block mt-6 text-[10px] text-gray-800">
+          <div className="grid grid-cols-4 gap-4 text-center font-semibold">
+            <div>
+              <p className="text-black text-xs font-bold h-5">{formData.studentSignature || ''}</p>
+              <p className="uppercase tracking-wider">Student's Signature</p>
+            </div>
+            <div>
+              <p className="text-black text-xs font-bold h-5">{formData.parentsSignature || ''}</p>
+              <p className="uppercase tracking-wider">Parent's Signature</p>
+            </div>
+            <div>
+              <p className="text-black text-xs font-bold h-5">{formData.classTeacher || ''}</p>
+              <p className="uppercase tracking-wider">Class Teacher</p>
+            </div>
+            <div>
+              <p className="text-black text-xs font-bold h-5">{formData.principal || ''}</p>
+              <p className="uppercase tracking-wider">Principal Signature</p>
+            </div>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="text-center text-gray-500 text-sm mt-8 pt-6 border-t">

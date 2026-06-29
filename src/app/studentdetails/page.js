@@ -612,6 +612,10 @@ export default function StudentDetailsPage() {
                 {/* Print Styles */}
                 <style jsx global>{`
                   @media print {
+                    @page {
+                      size: A4;
+                      margin: 4mm 8mm 4mm 8mm;
+                    }
                     body * {
                       visibility: hidden;
                     }
@@ -628,15 +632,48 @@ export default function StudentDetailsPage() {
                       padding: 0 !important;
                       margin: 0 !important;
                     }
+                    .printable-form .border-b-2 {
+                      border-bottom-width: 1px !important;
+                      padding-bottom: 2px !important;
+                      margin-bottom: 4px !important;
+                    }
+                    .printable-form .mb-6 {
+                      margin-bottom: 4px !important;
+                    }
+                    .printable-form .grid {
+                      gap: 4px !important;
+                      margin-bottom: 4px !important;
+                    }
+                    .printable-form .p-4 {
+                      padding: 4px 6px !important;
+                    }
+                    .printable-form span {
+                      font-size: 10px !important;
+                    }
+                    .printable-form input, .printable-form select {
+                      padding: 1px 2px !important;
+                      font-size: 10px !important;
+                      height: auto !important;
+                    }
+                    .printable-form .space-y-4 > * + * {
+                      margin-top: 2px !important;
+                    }
+                    .printable-form hr {
+                      margin-top: 4px !important;
+                      margin-bottom: 4px !important;
+                    }
                   }
                 `}</style>
 
                 {/* Admission Header */}
-                <div className="text-center border-b-2 border-blue-600 pb-4 mb-6">
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-blue-700 tracking-wider">
-                    SCHOOL ADMISSION FORM
+                <div className="text-center border-b-2 border-blue-600 pb-2 mb-4">
+                  <h1 className="text-3xl font-extrabold text-black uppercase tracking-wide">
+                    SIC Mahuli-Duddhi
                   </h1>
-                  <p className="text-slate-500 font-semibold mt-1">Academic Session 2024-2025</p>
+                  <h2 className="text-xl font-bold text-blue-700 tracking-wider">
+                    SCHOOL ADMISSION FORM
+                  </h2>
+                  <p className="text-slate-500 font-semibold text-xs mt-0.5">Academic Session 2024-2025</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -1040,22 +1077,22 @@ export default function StudentDetailsPage() {
                 </div>
 
                 {/* Section 5: Signatures and Approvals */}
-                <div className="mt-12 pt-8 border-t border-slate-200">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-xs text-slate-500 font-medium">
+                <div className="mt-6 pt-4 border-t border-slate-100 print:border-none print:mt-4 print:pt-0">
+                  <div className="grid grid-cols-4 gap-4 text-center text-[10px] text-slate-600 font-semibold uppercase tracking-wider">
                     <div className="flex flex-col items-center">
-                      <span className="block border-b border-slate-300 w-32 mb-1.5 h-6"></span>
+                      <span className="text-slate-900 font-bold text-xs h-4 mb-0.5">{getField(activeStudent, 'StudentSignature') || ''}</span>
                       <span>Student's Signature</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="block border-b border-slate-300 w-32 mb-1.5 h-6"></span>
+                      <span className="text-slate-900 font-bold text-xs h-4 mb-0.5">{getField(activeStudent, 'ParentsSignature') || ''}</span>
                       <span>Parent's Signature</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="block border-b border-slate-300 w-32 mb-1.5 h-6"></span>
+                      <span className="text-slate-900 font-bold text-xs h-4 mb-0.5">{getField(activeStudent, 'ClassTeacher') || ''}</span>
                       <span>Class Teacher</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="block border-b border-slate-300 w-32 mb-1.5 h-6"></span>
+                      <span className="text-slate-900 font-bold text-xs h-4 mb-0.5">{getField(activeStudent, 'Principal') || ''}</span>
                       <span>Principal Signature</span>
                     </div>
                   </div>

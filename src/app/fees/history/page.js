@@ -91,21 +91,79 @@ export default function FeeHistory() {
       {selectedTx && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
-            <div ref={printRef} className="p-4 border-2 border-gray-200 rounded-xl text-black">
-              <div className="text-center border-b pb-4 mb-4">
-                <h2 className="text-xl font-bold text-blue-600">SCHOOL FEE RECEIPT</h2>
-                <p className="text-xs text-gray-500">Official Invoice Slip</p>
+            <div ref={printRef} className="printable-receipt p-6 text-black bg-white rounded-xl" style={{ maxWidth: '148mm', margin: '0 auto' }}>
+              <style>{`
+                @media print {
+                  @page {
+                    size: A5 landscape;
+                    margin: 5mm;
+                  }
+                  body * {
+                    visibility: hidden;
+                  }
+                  .printable-receipt, .printable-receipt * {
+                    visibility: visible;
+                  }
+                  .printable-receipt {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100% !important;
+                    max-width: 148mm !important;
+                    height: auto !important;
+                    padding: 10px !important;
+                    box-sizing: border-box !important;
+                    font-family: ui-sans-serif, system-ui, sans-serif !important;
+                    font-size: 11px !important;
+                    line-height: 1.3 !important;
+                    border: none !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                  }
+                  .printable-receipt h1 {
+                    font-size: 16px !important;
+                    font-weight: 800 !important;
+                    margin-bottom: 2px !important;
+                  }
+                  .printable-receipt h2 {
+                    font-size: 12px !important;
+                    font-weight: bold !important;
+                    margin-bottom: 4px !important;
+                  }
+                  .printable-receipt hr {
+                    border-top: 1px dashed #000 !important;
+                    margin: 4px 0 !important;
+                  }
+                  .printable-receipt .grid {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 2px 8px !important;
+                  }
+                  .printable-receipt .flex {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                  }
+                }
+              `}</style>
+              
+              <div className="text-center border-b border-dashed border-black pb-2 mb-2">
+                <h1 className="text-lg font-extrabold tracking-wide uppercase">SIC Mahuli-Duddhi</h1>
+                <h2 className="text-xs font-bold text-gray-700">FEE RECEIPT</h2>
+                <p className="text-[10px] text-gray-500">Official Invoice Slip</p>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2 text-xs">
                 <p><strong>Slip No:</strong> {selectedTx.SlipNo}</p>
-                <p><strong>Student ID:</strong> {selectedTx.StudentID}</p>
+                <p><strong>Payment Date:</strong> {selectedTx.DatePaid}</p>
+                <p><strong>StudentID:</strong> {selectedTx.StudentID}</p>
                 <p><strong>Name:</strong> {selectedTx.StudentName}</p>
                 <p><strong>Fee Description:</strong> {selectedTx.FeeHead}</p>
                 <p><strong>Fee Month:</strong> {selectedTx.MonthPaid}</p>
-                <p><strong>Payment Date:</strong> {selectedTx.DatePaid}</p>
-                <p><strong>Collected By:</strong> {selectedTx.CollectedBy}</p>
-                <hr className="my-3" />
-                <p className="text-lg font-bold text-green-700"><strong>Amount Paid:</strong> ₹{parseFloat(selectedTx.AmountReceived).toFixed(2)}</p>
+                <p className="col-span-2"><strong>Collected By:</strong> {selectedTx.CollectedBy}</p>
+              </div>
+              <hr />
+              <div className="flex font-bold text-sm justify-between mt-2">
+                <span>Amount Paid:</span>
+                <span className="text-green-700">₹{parseFloat(selectedTx.AmountReceived).toFixed(2)}</span>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
