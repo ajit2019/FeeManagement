@@ -99,30 +99,46 @@ export default function BalancePage() {
     };
   }, [filteredStudents]);
 
-  // Export to CSV utility
+  // Export to CSV utility (Excel-compatible with UTF-8 BOM)
   const exportToCSV = () => {
     if (filteredStudents.length === 0) return;
-    const headers = ['S.No', 'Student ID', 'Student Name', 'Class', 'Total Annual Fees', 'Total Received', 'Balance'];
-    const rows = filteredStudents.map((student, index) => [
-      index + 1,
-      `"${student.StudentID}"`,
-      `"${student.StudentName}"`,
-      `"${student.Class}"`,
+    const headers = [
+      'Roll No.',
+      'Student ID',
+      'Class',
+      'Student Name',
+      'Father Name',
+      'Mother Name',
+      'Mobile Number',
+      'Aadhar Number',
+      'Total Annual Fee',
+      'Total Received',
+      'Balance'
+    ];
+    const rows = filteredStudents.map((student) => [
+      student.RollNo ? `="${student.RollNo}"` : '""',
+      student.StudentID ? `="${student.StudentID}"` : '""',
+      student.Class ? `="${student.Class}"` : '""',
+      `"${(student.StudentName || '').replace(/"/g, '""')}"`,
+      `"${(student.FatherName || '').replace(/"/g, '""')}"`,
+      `"${(student.MotherName || '').replace(/"/g, '""')}"`,
+      student.MobileNo ? `="${student.MobileNo}"` : '""',
+      student.AadharNo ? `="${student.AadharNo}"` : '""',
       student.TotalAnnualFees || 0,
       student.totalreceived || 0,
       student.balance || 0,
     ]);
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `Class_${selectedClass || 'All'}_Fee_Balance_Summary.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -243,21 +259,24 @@ export default function BalancePage() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">S.No</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Class</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Annual Fees</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Received</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Balance</th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Paid Status</th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">S.No</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Roll No</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student ID</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student Name</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Parents</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact Info</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Class</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Annual Fees</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Received</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Balance</th>
+                    <th className="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Paid Status</th>
+                    <th className="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-150">
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-10 text-center text-slate-400 italic">
+                      <td colSpan={12} className="px-6 py-10 text-center text-slate-400 italic">
                         No students found matching your criteria.
                       </td>
                     </tr>
@@ -269,9 +288,10 @@ export default function BalancePage() {
                       
                       return (
                         <tr key={student.StudentID} className="hover:bg-slate-50 transition">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{index + 1}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600">{student.StudentID}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500">{index + 1}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">{student.RollNo || '-'}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-indigo-600">{student.StudentID}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">
                             <div className="flex flex-col">
                               <span>{student.StudentName}</span>
                               {student.Status && (
@@ -287,15 +307,27 @@ export default function BalancePage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">Class {student.Class}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-slate-600">₹{total.toLocaleString('en-IN')}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-emerald-600 font-medium">₹{received.toLocaleString('en-IN')}</td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${
+                          <td className="px-4 py-4 text-xs text-slate-600">
+                            <div className="flex flex-col gap-0.5">
+                              <div><span className="font-medium text-slate-400">Father:</span> {student.FatherName || '-'}</div>
+                              <div><span className="font-medium text-slate-400">Mother:</span> {student.MotherName || '-'}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-xs text-slate-600">
+                            <div className="flex flex-col gap-0.5">
+                              <div><span className="font-medium text-slate-400">Mob:</span> {student.MobileNo || '-'}</div>
+                              <div><span className="font-medium text-slate-400">Aadhar:</span> {student.AadharNo || '-'}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-500">Class {student.Class}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-slate-600">₹{total.toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-emerald-600 font-medium">₹{received.toLocaleString('en-IN')}</td>
+                          <td className={`px-4 py-4 whitespace-nowrap text-sm text-right font-bold ${
                             student.balance > 0 ? 'text-amber-600' : 'text-slate-700'
                           }`}>
                             ₹{student.balance.toLocaleString('en-IN')}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="flex flex-col items-center gap-1">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xxs font-bold uppercase tracking-wider ${
                                 student.balance <= 0 
@@ -316,7 +348,7 @@ export default function BalancePage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
                             <div className="flex items-center justify-center gap-2">
                               <Link
                                 href={`/feesummary/${encodeURIComponent(student.StudentID)}`}

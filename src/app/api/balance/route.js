@@ -54,33 +54,52 @@ export async function GET(request) {
       .order('StudentName', { ascending: true });
 
     if (!viewStudentsError && viewStudents) {
-      // Fetch statuses to append and modify fee details
+      // Fetch statuses and other details to append
       const { data: studentStatuses } = await supabase
         .from('students')
-        .select('student_id, status')
+        .select('student_id, status, roll_no, father_name, mother_name, mobile_no, aadhar_number')
         .eq('class', classValue);
 
-      const statusMap = {};
+      const detailsMap = {};
       if (studentStatuses) {
         studentStatuses.forEach(s => {
-          statusMap[s.student_id] = s.status || 'active';
+          detailsMap[s.student_id] = {
+            Status: s.status || 'active',
+            RollNo: s.roll_no || '',
+            FatherName: s.father_name || '',
+            MotherName: s.mother_name || '',
+            MobileNo: s.mobile_no || '',
+            AadharNo: s.aadhar_number || ''
+          };
         });
       }
 
       const finalStudents = viewStudents.map(student => {
-        const status = statusMap[student.StudentID] || 'active';
+        const details = detailsMap[student.StudentID] || {
+          Status: 'active',
+          RollNo: '',
+          FatherName: '',
+          MotherName: '',
+          MobileNo: '',
+          AadharNo: ''
+        };
         let totalAnnual = Number(student.TotalAnnualFees || 0);
         let received = Number(student.totalreceived || 0);
         let balance = Number(student.balance || 0);
 
-        if (status === 'left') {
+        if (details.Status === 'left') {
           totalAnnual = received;
           balance = 0;
         }
 
         return {
           ...student,
-          Status: status,
+          Status: details.Status,
+          RollNo: details.RollNo,
+          FatherName: details.FatherName,
+          MotherName: details.MotherName,
+          MobileNo: details.MobileNo,
+          AadharNo: details.AadharNo,
           TotalAnnualFees: totalAnnual,
           totalreceived: received,
           balance: balance
@@ -106,6 +125,11 @@ export async function GET(request) {
         class,
         total_annual_fees,
         status,
+        roll_no,
+        father_name,
+        mother_name,
+        mobile_no,
+        aadhar_number,
         student_enrollments (
           total_annual_fee
         )
@@ -152,7 +176,12 @@ export async function GET(request) {
         TotalAnnualFees: totalAnnual,
         totalreceived: received,
         balance: balance,
-        Status: status
+        Status: status,
+        RollNo: student.roll_no || '',
+        FatherName: student.father_name || '',
+        MotherName: student.mother_name || '',
+        MobileNo: student.mobile_no || '',
+        AadharNo: student.aadhar_number || ''
       };
     });
 

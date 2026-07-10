@@ -437,81 +437,62 @@ export default function FeeFormPage() {
         </form>
 
         <div className="hidden">
-          <div ref={receiptRef} className="printable-receipt p-6 text-black bg-white" style={{ maxWidth: '148mm', margin: '0 auto' }}>
-            <style>{`
-              @media print {
-                @page {
-                  size: A5 landscape;
-                  margin: 5mm;
-                }
-                body {
-                  background-color: white !important;
-                  color: black !important;
-                }
-                .printable-receipt {
-                  width: 100% !important;
-                  max-width: 148mm !important;
-                  height: auto !important;
-                  padding: 10px !important;
-                  box-sizing: border-box !important;
-                  font-family: ui-sans-serif, system-ui, sans-serif !important;
-                  font-size: 11px !important;
-                  line-height: 1.3 !important;
-                }
-                .printable-receipt h1 {
-                  font-size: 16px !important;
-                  font-weight: 800 !important;
-                  margin-bottom: 2px !important;
-                }
-                .printable-receipt h2 {
-                  font-size: 12px !important;
-                  font-weight: bold !important;
-                  margin-bottom: 4px !important;
-                }
-                .printable-receipt hr {
-                  border-top: 1px dashed #000 !important;
-                  margin: 4px 0 !important;
-                }
-                .printable-receipt .grid {
-                  display: grid !important;
-                  grid-template-columns: 1fr 1fr !important;
-                  gap: 2px 8px !important;
-                }
-                .printable-receipt .flex {
-                  display: flex !important;
-                  justify-content: space-between !important;
-                }
-              }
-            `}</style>
-            
-            <div className="text-center border-b border-dashed border-black pb-2 mb-2">
-              <h1 className="text-lg font-extrabold tracking-wide uppercase">SIC Mahuli-Duddhi</h1>
-              <h2 className="text-xs font-bold text-gray-700">FEE RECEIPT</h2>
+          <div ref={receiptRef} className="print-receipt-container text-black font-sans">
+            {/* School Info / Header */}
+            <div className="text-center border-b-2 border-black pb-2 mb-2">
+              <h2 className="text-xl font-extrabold uppercase tracking-wide">SHIVAM EDUCATION ACADEMY</h2>
+              <p className="text-xs font-semibold">SCHOOL FEE RECEIPT (OFFICIAL COPY)</p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2 text-xs">
-              <p><strong>Slip No:</strong> {nextSlipNo}</p>
-              <p><strong>Date:</strong> {formData.Date}</p>
-              <p><strong>StudentID:</strong> {formData.StudentID}</p>
-              <p><strong>Name:</strong> {formData.StudentName}</p>
-              <p className="col-span-2"><strong>Parents Name:</strong> {formData.fatherMotherName}</p>
-              <p><strong>Class:</strong> {formData.Class}</p>
+
+            {/* Student & Slip Info */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm border-b pb-2 mb-2">
+              <div><strong>Slip No:</strong> {nextSlipNo}</div>
+              <div className="text-right"><strong>Date:</strong> {formData.Date}</div>
+              <div><strong>Student ID:</strong> {formData.StudentID}</div>
+              <div className="text-right"><strong>Class:</strong> {formData.Class}</div>
+              <div className="col-span-2"><strong>Student Name:</strong> {formData.StudentName}</div>
+              <div className="col-span-2"><strong>Father/Mother Name:</strong> {formData.fatherMotherName}</div>
             </div>
-            
-            <hr />
-            
-            <div className="space-y-1 text-xs">
-              <div className="flex"><span>Month Fee:</span><span>₹{parseFloat(formData.MonthFee || 0).toFixed(2)}</span></div>
-              <div className="flex"><span>Admission Fee:</span><span>₹{parseFloat(formData.AdmissionFee || 0).toFixed(2)}</span></div>
-              <div className="flex"><span>Books & Stationary:</span><span>₹{parseFloat(formData.BooksStationary || 0).toFixed(2)}</span></div>
-              <hr />
-              <div className="flex font-bold text-sm"><span>Total Received:</span><span>₹{parseFloat(totalReceived || 0).toFixed(2)}</span></div>
-              <div className="flex text-gray-650"><span>Previous Balance:</span><span>₹{parseFloat(balanceFee || 0).toFixed(2)}</span></div>
-              <div className="flex font-bold text-green-700"><span>Remaining Balance:</span><span>₹{parseFloat(balanceAfterPayment || 0).toFixed(2)}</span></div>
+
+            {/* Fee Breakdown Table */}
+            <div className="flex-grow">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-black">
+                    <th className="py-1">Fee Description</th>
+                    <th className="py-1 text-right">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-0.5">Month Fee</td>
+                    <td className="py-0.5 text-right">₹{parseFloat(formData.MonthFee || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5">Admission Fee</td>
+                    <td className="py-0.5 text-right">₹{parseFloat(formData.AdmissionFee || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5">Books & Stationary</td>
+                    <td className="py-0.5 text-right">₹{parseFloat(formData.BooksStationary || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr className="border-t border-black font-bold">
+                    <td className="py-1 text-base">Total Received</td>
+                    <td className="py-1 text-right text-base">₹{parseFloat(totalReceived || 0).toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            
-            <div className="text-center mt-3 text-[10px] text-gray-500">
-              <p>Thank you for your payment!</p>
+
+            {/* Outstanding Balances & Signatures */}
+            <div className="border-t border-black pt-2 text-xs flex justify-between items-end">
+              <div className="space-y-1">
+                <div><strong>Previous Balance:</strong> ₹{parseFloat(balanceFee || 0).toFixed(2)}</div>
+                <div><strong>Remaining Balance:</strong> ₹{parseFloat(balanceAfterPayment || 0).toFixed(2)}</div>
+              </div>
+              <div className="text-center w-36 border-t border-black mt-6 pt-1">
+                <span className="text-[10px] font-bold block">Authorized Signatory</span>
+              </div>
             </div>
           </div>
         </div>

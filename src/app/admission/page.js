@@ -216,7 +216,7 @@ export default function AdmissionForm() {
   };
 
   return (
-    <div ref={printRef} className="min-h-screen bg-gray-100 py-8 px-4">
+    <div ref={printRef} className="min-h-screen bg-gray-100 py-8 px-4 print-admission-form">
       <style>{`
         @media print {
           @page {
@@ -705,7 +705,7 @@ export default function AdmissionForm() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col md:flex-row gap-4 justify-center pt-6">
+          <div className="flex flex-col md:flex-row gap-4 justify-center pt-6 print:hidden">
             <button
               type="submit"
               disabled={isSubmitting || isLoadingStudentId || !formData.StudentID}

@@ -24,3 +24,90 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  /* Global page setup */
+  @page {
+    size: A4 portrait;
+    margin: 0mm; /* Minimal margins so content can align right at the top */
+  }
+
+  html, body {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Admission Form print visibility improvements */
+  .print-admission-form {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 10mm !important; /* Keep margins for admission form */
+  }
+  
+  .print-admission-form h1,
+  .print-admission-form h2,
+  .print-admission-form h3 {
+    color: #000000 !important;
+    font-weight: 800 !important;
+  }
+  
+  .print-admission-form label {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+  
+  .print-admission-form input,
+  .print-admission-form select,
+  .print-admission-form textarea {
+    color: #000000 !important;
+    font-weight: 700 !important;
+    border: 2px solid #000000 !important;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-admission-form .bg-gray-100 {
+    background-color: #ffffff !important;
+  }
+  
+  .print-admission-form .border-blue-300 {
+    border-color: #000000 !important;
+  }
+
+  /* Fee Receipt - Take exactly half of A4 page starting at the top */
+  .print-receipt-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 135mm !important;    /* Fits comfortably in half of A4 height (148.5mm) */
+    max-height: 135mm !important;
+    margin: 0 !important;         /* Align directly to top-left of page */
+    padding: 15px !important;
+    box-sizing: border-box !important;
+    border: 2px dashed #000000 !important;
+    background-color: #ffffff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-receipt-container * {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+}
+
