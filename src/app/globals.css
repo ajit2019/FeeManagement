@@ -25,6 +25,49 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* On-screen fee receipt styling */
+.print-receipt-container {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+.print-receipt-container * {
+  color: #000000 !important;
+  font-weight: 850 !important;
+}
+.print-receipt-container h2 {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+}
+.print-receipt-container p,
+.print-receipt-container div,
+.print-receipt-container span,
+.print-receipt-container td,
+.print-receipt-container th {
+  font-size: 15px !important;
+  font-weight: 850 !important;
+}
+.print-receipt-container strong {
+  font-weight: 900 !important;
+}
+.print-receipt-container table th {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  border-bottom: 2px solid #000000 !important;
+}
+.print-receipt-container table td {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+.print-receipt-container .text-base {
+  font-size: 17px !important;
+  font-weight: 900 !important;
+}
+.print-receipt-container hr {
+  border-top: 2px dashed #000000 !important;
+  margin: 8px 0 !important;
+}
+
 @media print {
   /* Global page setup */
   @page {
@@ -87,9 +130,9 @@ body {
     height: 135mm !important;    /* Fits comfortably in half of A4 height (148.5mm) */
     max-height: 135mm !important;
     margin: 0 !important;         /* Align directly to top-left of page */
-    padding: 15px !important;
+    padding: 20px !important;
     box-sizing: border-box !important;
-    border: 2px dashed #000000 !important;
+    border: 3px dashed #000000 !important;
     background-color: #ffffff !important;
     display: flex !important;
     flex-direction: column !important;
@@ -99,11 +142,52 @@ body {
     page-break-before: avoid !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
   }
 
   .print-receipt-container * {
     color: #000000 !important;
-    font-weight: 700 !important;
+    font-weight: 850 !important;  /* Make all text extra bold */
+  }
+
+  .print-receipt-container h2 {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+  }
+
+  .print-receipt-container p,
+  .print-receipt-container div,
+  .print-receipt-container span,
+  .print-receipt-container td,
+  .print-receipt-container th {
+    font-size: 15px !important;
+    font-weight: 850 !important;
+  }
+
+  .print-receipt-container strong {
+    font-weight: 900 !important;
+  }
+
+  .print-receipt-container table th {
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  .print-receipt-container table td {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .print-receipt-container .text-base {
+    font-size: 17px !important;
+    font-weight: 900 !important;
+  }
+
+  .print-receipt-container hr {
+    border-top: 2px dashed #000000 !important;
+    margin: 8px 0 !important;
   }
   
   .print\:hidden {

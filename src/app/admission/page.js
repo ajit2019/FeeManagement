@@ -221,7 +221,7 @@ export default function AdmissionForm() {
         @media print {
           @page {
             size: A4;
-            margin: 4mm 8mm 4mm 8mm;
+            margin: 10mm 15mm 10mm 15mm;
           }
           body {
             background-color: white !important;
@@ -236,7 +236,7 @@ export default function AdmissionForm() {
           }
           .max-w-4xl {
             max-width: 100% !important;
-            padding: 0 !important;
+            padding: 5mm !important;
             margin: 0 !important;
             box-shadow: none !important;
             border: none !important;

@@ -614,7 +614,7 @@ export default function StudentDetailsPage() {
                   @media print {
                     @page {
                       size: A4;
-                      margin: 4mm 8mm 4mm 8mm;
+                      margin: 10mm 15mm 10mm 15mm;
                     }
                     body * {
                       visibility: hidden;
@@ -629,7 +629,7 @@ export default function StudentDetailsPage() {
                       width: 100%;
                       border: none !important;
                       box-shadow: none !important;
-                      padding: 0 !important;
+                      padding: 5mm !important;
                       margin: 0 !important;
                     }
                     .printable-form .border-b-2 {
