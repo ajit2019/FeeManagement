@@ -43,7 +43,7 @@ export async function GET(request) {
       const parent = student.parents_guardian?.[0] || {};
       const enrollment = student.student_enrollments?.[0] || {};
       const className = enrollment.classes?.class_name || '';
-      const classNum = className ? className.replace(/[^\d]/g, '') : '';
+      const classNum = className ? className.replace(/^Class\s+/i, '') : '';
 
       const subjectsMapped = {};
       const subjectsList = student.subjects || [];
@@ -202,7 +202,7 @@ export async function PATCH(request) {
         father_profession: Profession || null,
         mother_name: MotherName || null,
         mobile_no: PhoneNumber || null,
-        class: Class ? parseInt(Class, 10) : null,
+        class: Class ? String(Class).trim() : null,
         roll_no: RollNo ? parseInt(RollNo, 10) : null,
         total_annual_fees: TotalAnnualFees ? parseFloat(TotalAnnualFees) : null,
         status: Status || 'active',

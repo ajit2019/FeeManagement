@@ -135,7 +135,7 @@ export default function AdmissionForm() {
       RollNo: formData.rollNo ? parseInt(formData.rollNo, 10) : null,
       DateOfAdmission: formData.date || null,
       StudentName: formData.studentName || null,
-      Class: formData.class ? parseInt(formData.class, 10) : null,
+      Class: formData.class ? String(formData.class).trim() : null,
       FatherName: formData.fatherName || null,
       MotherName: formData.motherName || null,
       Profession: formData.fatherProfession || null,
@@ -220,13 +220,15 @@ export default function AdmissionForm() {
       <style>{`
         @media print {
           @page {
-            size: A4;
-            margin: 10mm 15mm 10mm 15mm;
+            size: A4 portrait;
+            margin: 5mm 10mm 5mm 10mm;
           }
           body {
             background-color: white !important;
             color: black !important;
-            font-size: 10px !important;
+            font-size: 8px !important;
+            line-height: 1.15 !important;
+            font-weight: 700 !important;
           }
           .min-h-screen {
             min-height: 0 !important;
@@ -236,64 +238,76 @@ export default function AdmissionForm() {
           }
           .max-w-4xl {
             max-width: 100% !important;
-            padding: 5mm !important;
+            padding: 2mm !important;
             margin: 0 !important;
             box-shadow: none !important;
             border: none !important;
           }
           form {
-            gap: 0.15rem !important;
-            margin-top: 0.15rem !important;
+            gap: 0.05rem !important;
+            margin-top: 0.05rem !important;
           }
           .space-y-6 > * + * {
-            margin-top: 0.2rem !important;
+            margin-top: 0.1rem !important;
           }
           .pb-6 {
-            padding-bottom: 0.15rem !important;
+            padding-bottom: 0.08rem !important;
           }
           .mb-8 {
-            margin-bottom: 0.25rem !important;
+            margin-bottom: 0.15rem !important;
           }
           .mb-4 {
-            margin-bottom: 0.15rem !important;
+            margin-bottom: 0.08rem !important;
           }
           .mb-3 {
-            margin-bottom: 0.15rem !important;
+            margin-bottom: 0.08rem !important;
           }
           .mt-4 {
-            margin-top: 0.15rem !important;
+            margin-top: 0.08rem !important;
           }
           .grid {
-            gap: 0.25rem !important;
+            display: grid !important;
+            gap: 0.15rem !important;
+          }
+          .md\\:grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .md\\:grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+          .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
           input, select, textarea {
-            padding-top: 0.1rem !important;
-            padding-bottom: 0.1rem !important;
-            padding-left: 0.3rem !important;
-            padding-right: 0.3rem !important;
-            font-size: 10px !important;
-            border: 1px solid #ccc !important;
+            padding-top: 0.05rem !important;
+            padding-bottom: 0.05rem !important;
+            padding-left: 0.2rem !important;
+            padding-right: 0.2rem !important;
+            font-size: 8px !important;
+            border: 1.5px solid #000 !important;
             background-color: transparent !important;
             border-radius: 2px !important;
-            line-height: 1.1 !important;
+            line-height: 1.05 !important;
             height: auto !important;
+            font-weight: 700 !important;
           }
           label {
-            font-size: 9px !important;
+            font-size: 7.5px !important;
             margin-bottom: 0px !important;
+            font-weight: 800 !important;
           }
           h1 {
-            font-size: 20px !important;
-            margin-bottom: 2px !important;
+            font-size: 15px !important;
+            margin-bottom: 1px !important;
           }
           h2 {
-            font-size: 11px !important;
-            margin-bottom: 0.15rem !important;
+            font-size: 9px !important;
+            margin-bottom: 0.08rem !important;
           }
           h3 {
-            font-size: 10px !important;
-            margin-bottom: 0.15rem !important;
-            margin-top: 0.15rem !important;
+            font-size: 8.5px !important;
+            margin-bottom: 0.08rem !important;
+            margin-top: 0.08rem !important;
           }
           .border-b-2 {
             border-bottom-width: 1px !important;
@@ -358,12 +372,11 @@ export default function AdmissionForm() {
               <div>
                 <label className="block text-sm font-semibold mb-1">Class</label>
                 <input
-                  type="number"
+                  type="text"
                   name="class"
                   value={formData.class}
                   onChange={handleInputChange}
-                  placeholder="e.g., 6"
-                  min="1"
+                  placeholder="e.g., PG, LKG, 6"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

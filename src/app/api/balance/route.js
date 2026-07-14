@@ -15,14 +15,26 @@ export async function GET(request) {
     // Fetch classes list (distinct classes from students or views)
     let classes = [];
     
+    const sortClasses = (arr) => {
+      return [...new Set(arr.map(c => c ? String(c).replace(/^Class\s+/i, '').trim() : ''))]
+        .filter(Boolean)
+        .sort((a, b) => {
+          const isANum = !isNaN(a) && a !== '';
+          const isBNum = !isNaN(b) && b !== '';
+          if (isANum && isBNum) return Number(a) - Number(b);
+          if (isANum) return -1;
+          if (isBNum) return 1;
+          return a.localeCompare(b);
+        });
+    };
+
     // First try the VIEW_NAME
     const { data: classesData, error: classesError } = await supabase
       .from(VIEW_NAME)
-      .select('Class')
-      .order('Class', { ascending: true });
+      .select('Class');
 
     if (!classesError && classesData) {
-      classes = [...new Set(classesData.map((row) => row.Class).filter(row => row !== null && row !== undefined))];
+      classes = sortClasses(classesData.map((row) => row.Class));
     } else {
       // Fallback: fetch from students table
       const { data: studentsForClasses, error: studentsClassesError } = await supabase
@@ -30,7 +42,7 @@ export async function GET(request) {
         .select('class')
         .not('class', 'is', null);
       if (!studentsClassesError && studentsForClasses) {
-        classes = [...new Set(studentsForClasses.map(s => s.class))].sort((a, b) => Number(a) - Number(b));
+        classes = sortClasses(studentsForClasses.map(s => s.class));
       }
     }
 
@@ -46,7 +58,7 @@ export async function GET(request) {
     }
 
     // Try fetching students from VIEW_NAME
-    const classValue = Number(selectedClass);
+    const classValue = selectedClass;
     const { data: viewStudents, error: viewStudentsError } = await supabase
       .from(VIEW_NAME)
       .select('StudentID, Class, StudentName, TotalAnnualFees, totalreceived, balance')

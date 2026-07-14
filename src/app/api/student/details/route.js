@@ -73,7 +73,7 @@ export async function GET(request) {
           StudentID: student.student_id,
           StudentName: student.student_name || '',
           fatherMotherName: fatherMotherName || '',
-          Class: balanceData?.class_assigned || 'Not Enrolled',
+          Class: balanceData?.class_assigned ? balanceData.class_assigned.replace(/^Class\s+/i, '') : (student.class || 'Not Enrolled'),
           balance: balance,
           status: status,
         },
