@@ -262,6 +262,11 @@ export async function PATCH(request) {
 
         if (enrollError) {
           console.error('student_enrollments update edit error:', enrollError);
+          let errorMsg = enrollError.message;
+          if (enrollError.code === '23505') {
+            errorMsg = `Roll number ${RollNo} is already assigned to another student in Class ${Class}.`;
+          }
+          return Response.json({ success: false, error: errorMsg }, { status: 400 });
         }
       }
     }

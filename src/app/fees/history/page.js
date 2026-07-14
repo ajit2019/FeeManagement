@@ -91,11 +91,70 @@ export default function FeeHistory() {
       {selectedTx && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
-            <div ref={printRef} className="p-4 border-2 border-gray-200 rounded-xl text-black print-receipt-container">
-              {/* School Info / Header */}
-              <div className="text-center border-b pb-4 mb-4">
-                <h2 className="text-xl font-extrabold uppercase tracking-wide text-blue-600 print:text-black">SHIVAM EDUCATION ACADEMY</h2>
-                <p className="text-xs text-gray-500 font-semibold uppercase">SCHOOL FEE RECEIPT (OFFICIAL COPY)</p>
+            <div ref={printRef} className="printable-receipt p-6 text-black bg-white rounded-xl" style={{ width: '21cm', height: '15cm', margin: '0 auto' }}>
+              <style>{`
+                @media print {
+                  @page {
+                    margin: 0;
+                  }
+                  html, body {
+                    display: block !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                  }
+                  body * {
+                    visibility: hidden;
+                  }
+                  .printable-receipt, .printable-receipt * {
+                    visibility: visible;
+                  }
+                  .printable-receipt {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 21cm !important;
+                    height: 15cm !important;
+                    padding: 12mm !important;
+                    box-sizing: border-box !important;
+                    font-family: ui-sans-serif, system-ui, sans-serif !important;
+                    font-size: 12px !important;
+                    line-height: 1.4 !important;
+                    border: none !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                  }
+                  .printable-receipt h1 {
+                    font-size: 16px !important;
+                    font-weight: 800 !important;
+                    margin-bottom: 2px !important;
+                  }
+                  .printable-receipt h2 {
+                    font-size: 12px !important;
+                    font-weight: bold !important;
+                    margin-bottom: 4px !important;
+                  }
+                  .printable-receipt hr {
+                    border-top: 1px dashed #000 !important;
+                    margin: 4px 0 !important;
+                  }
+                  .printable-receipt .grid {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 2px 8px !important;
+                  }
+                  .printable-receipt .flex {
+                    display: flex !important;
+                    justify-content: space-between !important;
+                  }
+                }
+              `}</style>
+              
+              <div className="text-center border-b border-dashed border-black pb-2 mb-2">
+                <h1 className="text-lg font-extrabold tracking-wide uppercase">SIC-Mahuli Dudhhi</h1>
+                <h2 className="text-xs font-bold text-gray-700">FEE RECEIPT</h2>
+                <p className="text-[10px] text-gray-500">Official Invoice Slip</p>
               </div>
 
               {/* Student & Slip Info */}

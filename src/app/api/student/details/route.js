@@ -28,7 +28,7 @@ export async function GET(request) {
         status,
         parents_guardian (father_name, mother_name)
       `)
-      .eq('student_id', studentID)
+      .ilike('student_id', studentID)
       .maybeSingle();
 
     if (studentError) {
@@ -49,7 +49,7 @@ export async function GET(request) {
     const { data: balanceData } = await supabase
       .from('student_fee_balances')
       .select('class_assigned, remaining_balance')
-      .eq('student_id', studentID)
+      .ilike('student_id', studentID)
       .maybeSingle();
 
 
