@@ -437,10 +437,11 @@ export default function FeeFormPage() {
         </form>
 
         <div className="hidden">
-          <div ref={receiptRef} className="printable-receipt p-6 text-black bg-white" style={{ width: '21cm', height: '15cm', margin: '0 auto' }}>
+          <div ref={receiptRef} className="printable-receipt p-6 text-black bg-white" style={{ width: '16cm', height: '12cm', margin: '0 auto' }}>
             <style>{`
               @media print {
                 @page {
+                  size: A4 portrait;
                   margin: 0;
                 }
                 html, body {
@@ -457,23 +458,30 @@ export default function FeeFormPage() {
                 .printable-receipt {
                   position: absolute !important;
                   left: 0 !important;
-                  top: 0 !important;
-                  width: 21cm !important;
-                  height: 15cm !important;
-                  padding: 12mm !important;
+                  right: 0 !important;
+                  margin: 0 auto !important;
+                  top: 10mm !important;
+                  width: 16cm !important;
+                  height: 12cm !important;
+                  padding: 8mm !important;
                   box-sizing: border-box !important;
                   font-family: ui-sans-serif, system-ui, sans-serif !important;
-                  font-size: 12px !important;
-                  line-height: 1.4 !important;
+                  font-size: 11px !important;
+                  line-height: 1.3 !important;
+                  font-weight: 600 !important;
+                  border: 1px dashed #000;
+                }
+                .printable-receipt strong, .printable-receipt th {
+                  font-weight: 800 !important;
                 }
                 .printable-receipt h1 {
-                  font-size: 16px !important;
-                  font-weight: 800 !important;
+                  font-size: 15px !important;
+                  font-weight: 900 !important;
                   margin-bottom: 2px !important;
                 }
                 .printable-receipt h2 {
                   font-size: 12px !important;
-                  font-weight: bold !important;
+                  font-weight: 800 !important;
                   margin-bottom: 4px !important;
                 }
                 .printable-receipt hr {

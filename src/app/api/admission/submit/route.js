@@ -108,7 +108,7 @@ export async function POST(request) {
           father_profession: formData.Profession || null,
           mother_name: formData.MotherName || null,
           mobile_no: formData.PhoneNumber || null,
-          class: formData.Class ? parseInt(formData.Class, 10) : null,
+          class: formData.Class ? String(formData.Class).trim() : null,
           roll_no: formData.RollNo ? parseInt(formData.RollNo, 10) : null,
           total_annual_fees: formData.TotalAnnualFees ? parseFloat(formData.TotalAnnualFees) : null,
           status: 'active',
