@@ -147,6 +147,7 @@ export async function POST(request) {
 
     if (parentError) {
       console.error('parents_guardian insert error:', parentError);
+      return Response.json({ success: false, error: `Parent details registration failed: ${parentError.message}` }, { status: 400 });
     }
 
     // 4. Resolve and ensure Class ID exists
@@ -165,6 +166,7 @@ export async function POST(request) {
         .single();
       if (newClassErr) {
         console.error('classes insert error:', newClassErr);
+        return Response.json({ success: false, error: `Failed to create class: ${newClassErr.message}` }, { status: 400 });
       } else {
         classData = newClass;
       }
@@ -186,6 +188,7 @@ export async function POST(request) {
         .single();
       if (newYearErr) {
         console.error('academic_years insert error:', newYearErr);
+        return Response.json({ success: false, error: `Failed to create academic year: ${newYearErr.message}` }, { status: 400 });
       } else {
         yearData = newYear;
       }
@@ -206,6 +209,11 @@ export async function POST(request) {
         ]);
       if (enrollError) {
         console.error('student_enrollments insert error:', enrollError);
+        let errorMsg = enrollError.message;
+        if (enrollError.code === '23505') {
+          errorMsg = `Roll number ${formData.RollNo} is already assigned to another student in Class ${formData.Class} for academic year ${yearData.year_string}.`;
+        }
+        return Response.json({ success: false, error: errorMsg }, { status: 400 });
       }
     }
 

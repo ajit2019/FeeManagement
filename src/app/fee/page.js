@@ -437,11 +437,64 @@ export default function FeeFormPage() {
         </form>
 
         <div className="hidden">
-          <div ref={receiptRef} className="print-receipt-container text-black font-sans">
-            {/* School Info / Header */}
-            <div className="text-center border-b-2 border-black pb-2 mb-2">
-              <h2 className="text-xl font-extrabold uppercase tracking-wide">SHIVAM EDUCATION ACADEMY</h2>
-              <p className="text-xs font-semibold">SCHOOL FEE RECEIPT (OFFICIAL COPY)</p>
+          <div ref={receiptRef} className="printable-receipt p-6 text-black bg-white" style={{ width: '21cm', height: '15cm', margin: '0 auto' }}>
+            <style>{`
+              @media print {
+                @page {
+                  margin: 0;
+                }
+                html, body {
+                  display: block !important;
+                  height: auto !important;
+                  min-height: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                }
+                body {
+                  background-color: white !important;
+                  color: black !important;
+                }
+                .printable-receipt {
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 21cm !important;
+                  height: 15cm !important;
+                  padding: 12mm !important;
+                  box-sizing: border-box !important;
+                  font-family: ui-sans-serif, system-ui, sans-serif !important;
+                  font-size: 12px !important;
+                  line-height: 1.4 !important;
+                }
+                .printable-receipt h1 {
+                  font-size: 16px !important;
+                  font-weight: 800 !important;
+                  margin-bottom: 2px !important;
+                }
+                .printable-receipt h2 {
+                  font-size: 12px !important;
+                  font-weight: bold !important;
+                  margin-bottom: 4px !important;
+                }
+                .printable-receipt hr {
+                  border-top: 1px dashed #000 !important;
+                  margin: 4px 0 !important;
+                }
+                .printable-receipt .grid {
+                  display: grid !important;
+                  grid-template-columns: 1fr 1fr !important;
+                  gap: 2px 8px !important;
+                }
+                .printable-receipt .flex {
+                  display: flex !important;
+                  justify-content: space-between !important;
+                }
+              }
+            `}</style>
+            
+            <div className="text-center border-b border-dashed border-black pb-2 mb-2">
+              <h1 className="text-lg font-extrabold tracking-wide uppercase">SIC-Mahuli Dudhhi</h1>
+              <h2 className="text-xs font-bold text-gray-700">FEE RECEIPT</h2>
             </div>
 
             {/* Student & Slip Info */}
