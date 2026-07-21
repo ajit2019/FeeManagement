@@ -18,7 +18,8 @@ export async function GET(request) {
     );
 
     // Fetch student profile and parents info
-    const { data: student, error: studentError } = await supabase
+    let studentIDToQuery = studentID;
+    let { data: student, error: studentError } = await supabase
       .from('students')
       .select(`
         student_id,
@@ -28,8 +29,29 @@ export async function GET(request) {
         status,
         parents_guardian (father_name, mother_name)
       `)
-      .ilike('student_id', studentID)
+      .ilike('student_id', studentIDToQuery)
       .maybeSingle();
+
+    if (!student && /^\d+$/.test(studentID)) {
+      const fallbackID = `SIC-${studentID}`;
+      const { data: studentFallback, error: fallbackError } = await supabase
+        .from('students')
+        .select(`
+          student_id,
+          student_name,
+          father_name,
+          mother_name,
+          status,
+          parents_guardian (father_name, mother_name)
+        `)
+        .ilike('student_id', fallbackID)
+        .maybeSingle();
+
+      if (studentFallback) {
+        student = studentFallback;
+        studentIDToQuery = fallbackID;
+      }
+    }
 
     if (studentError) {
       return Response.json(
@@ -49,7 +71,7 @@ export async function GET(request) {
     const { data: balanceData } = await supabase
       .from('student_fee_balances')
       .select('class_assigned, remaining_balance')
-      .ilike('student_id', studentID)
+      .ilike('student_id', studentIDToQuery)
       .maybeSingle();
 
 
