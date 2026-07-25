@@ -17,6 +17,7 @@ export async function GET(request) {
         student_name,
         date_of_birth,
         status,
+        class,
         student_enrollments (
           roll_number,
           total_annual_fee,
@@ -38,11 +39,12 @@ export async function GET(request) {
     // Format output
     const formatted = data.map(student => {
       const enrollment = student.student_enrollments?.[0] || {};
-      const className = enrollment.classes?.class_name || 'Not Enrolled';
+      const className = enrollment.classes?.class_name || '';
+      const cleanClassName = className ? className.replace(/^Class\s+/i, '') : (student.class || 'Not Enrolled');
       return {
         StudentID: student.student_id,
         StudentName: student.student_name || '',
-        Class: className,
+        Class: cleanClassName,
         RollNo: enrollment.roll_number ?? 'N/A',
         DOB: student.date_of_birth,
         Status: student.status || 'active',
