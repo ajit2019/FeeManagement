@@ -151,7 +151,8 @@ export async function POST(request) {
     }
 
     // 4. Resolve and ensure Class ID exists
-    const className = `Class ${formData.Class}`;
+    const rawClass = String(formData.Class || '').trim().replace(/^Class\s+/i, '');
+    const className = `Class ${rawClass}`;
     let { data: classData } = await supabase
       .from('classes')
       .select('id')
