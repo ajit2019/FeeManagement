@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { ALL_CLASSES, sortClasses } from '@/lib/constants';
 
 const VIEW_NAME = 'studentfinancialsummary';
 
@@ -14,19 +15,6 @@ export async function GET(request) {
 
     // Fetch classes list (distinct classes from students or views)
     let classes = [];
-    
-    const sortClasses = (arr) => {
-      return [...new Set(arr.map(c => c ? String(c).replace(/^Class\s+/i, '').trim() : ''))]
-        .filter(Boolean)
-        .sort((a, b) => {
-          const isANum = !isNaN(a) && a !== '';
-          const isBNum = !isNaN(b) && b !== '';
-          if (isANum && isBNum) return Number(a) - Number(b);
-          if (isANum) return -1;
-          if (isBNum) return 1;
-          return a.localeCompare(b);
-        });
-    };
 
     // First try the VIEW_NAME
     const { data: classesData, error: classesError } = await supabase
@@ -34,7 +22,7 @@ export async function GET(request) {
       .select('Class');
 
     if (!classesError && classesData) {
-      classes = sortClasses(classesData.map((row) => row.Class));
+      classes = sortClasses([...ALL_CLASSES, ...classesData.map((row) => row.Class)]);
     } else {
       // Fallback: fetch from students table
       const { data: studentsForClasses, error: studentsClassesError } = await supabase
@@ -42,7 +30,9 @@ export async function GET(request) {
         .select('class')
         .not('class', 'is', null);
       if (!studentsClassesError && studentsForClasses) {
-        classes = sortClasses(studentsForClasses.map(s => s.class));
+        classes = sortClasses([...ALL_CLASSES, ...studentsForClasses.map(s => s.class)]);
+      } else {
+        classes = ALL_CLASSES;
       }
     }
 
