@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useReactToPrint } from 'react-to-print';
+import { ALL_CLASSES, sortClasses } from '@/lib/constants';
 
 export default function StudentDetailsPage() {
   const [students, setStudents] = useState([]);
@@ -238,7 +239,7 @@ export default function StudentDetailsPage() {
   });
 
   // Dynamic unique list of classes for the filter dropdown
-  const classesList = [...new Set(students.map((s) => getField(s, 'Class')).filter(Boolean))].sort((a, b) => a - b);
+  const classesList = sortClasses([...ALL_CLASSES, ...students.map((s) => getField(s, 'Class')).filter(Boolean)]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-12">
@@ -391,6 +392,7 @@ export default function StudentDetailsPage() {
                     <th className="px-6 py-4">Student ID</th>
                     <th className="px-6 py-4">Student Name</th>
                     <th className="px-6 py-4">Class</th>
+                    <th className="px-6 py-4">Roll No</th>
                     <th className="px-6 py-4">Father's Name</th>
                     <th className="px-6 py-4">Admission Date</th>
                     <th className="px-6 py-4">Phone Number</th>
@@ -401,7 +403,7 @@ export default function StudentDetailsPage() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">
+                      <td colSpan={10} className="px-6 py-12 text-center text-slate-400 font-medium">
                         No student records matched your search parameters.
                       </td>
                     </tr>
@@ -410,6 +412,7 @@ export default function StudentDetailsPage() {
                       const id = getField(student, 'StudentID');
                       const name = getField(student, 'StudentName');
                       const cls = getField(student, 'Class');
+                      const rollNo = getField(student, 'RollNo');
                       const father = getField(student, 'FatherName');
                       const date = getField(student, 'DateOfAdmission');
                       const phone = getField(student, 'PhoneNumber');
@@ -428,6 +431,9 @@ export default function StudentDetailsPage() {
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800">
                               Class {cls}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 font-semibold text-slate-700">
+                            {rollNo || '-'}
                           </td>
                           <td className="px-6 py-4 text-slate-600">{father}</td>
                           <td className="px-6 py-4 text-slate-500">
@@ -698,12 +704,18 @@ export default function StudentDetailsPage() {
                   <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
                     <span className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Class Admission</span>
                     {isEditing ? (
-                      <input
-                        type="number"
+                      <select
                         value={editFormData.Class || ''}
                         onChange={(e) => setEditFormData({ ...editFormData, Class: e.target.value })}
-                        className="w-full mt-1 px-2.5 py-1 border border-slate-350 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-semibold"
-                      />
+                        className="w-full mt-1 px-2.5 py-1 border border-slate-350 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm font-semibold bg-white"
+                      >
+                        <option value="">Select Class</option>
+                        {ALL_CLASSES.map((c) => (
+                          <option key={c} value={c}>
+                            Class {c}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <span className="text-base font-bold text-slate-800">Class {getField(activeStudent, 'Class')}</span>
                     )}

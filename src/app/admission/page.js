@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
+import { ALL_CLASSES } from '@/lib/constants';
 
 const emptyFormFields = {
   date: '',
@@ -370,16 +371,21 @@ export default function AdmissionForm() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Class</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-semibold mb-1">Class *</label>
+                <select
                   name="class"
                   value={formData.class}
                   onChange={handleInputChange}
-                  placeholder="e.g., PG, LKG, 6"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   required
-                />
+                >
+                  <option value="">Select Class</option>
+                  {ALL_CLASSES.map((cls) => (
+                    <option key={cls} value={cls}>
+                      Class {cls}
+                    </option>
+                  ))}
+                </select>
                 {validationErrors.class && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.class}</p>
                 )}
