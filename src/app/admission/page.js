@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { ALL_CLASSES } from '@/lib/constants';
 
 const emptyFormFields = {
   date: '',
@@ -358,12 +357,15 @@ export default function AdmissionForm() {
               <div>
                 <label className="block text-sm font-semibold mb-1">Roll No</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   name="rollNo"
                   value={formData.rollNo}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    handleInputChange({ target: { name: 'rollNo', value: val } });
+                  }}
                   placeholder="e.g., 1"
-                  min="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {validationErrors.rollNo && (
@@ -372,20 +374,15 @@ export default function AdmissionForm() {
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1">Class *</label>
-                <select
+                <input
+                  type="text"
                   name="class"
                   value={formData.class}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  placeholder="e.g., 11, 12, LKG, AT1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                >
-                  <option value="">Select Class</option>
-                  {ALL_CLASSES.map((cls) => (
-                    <option key={cls} value={cls}>
-                      Class {cls}
-                    </option>
-                  ))}
-                </select>
+                />
                 {validationErrors.class && (
                   <p className="text-red-600 text-sm mt-1">{validationErrors.class}</p>
                 )}
@@ -592,10 +589,18 @@ export default function AdmissionForm() {
               <div>
                 <label className="block text-sm font-semibold mb-1">Total Annual Fees</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   name="totalFees"
                   value={formData.totalFees}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9.]/g, '');
+                    const parts = val.split('.');
+                    if (parts.length > 2) {
+                      val = parts[0] + '.' + parts.slice(1).join('');
+                    }
+                    handleInputChange({ target: { name: 'totalFees', value: val } });
+                  }}
                   placeholder="Amount in INR"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
