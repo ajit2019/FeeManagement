@@ -5,7 +5,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const studentID = searchParams.get('studentID');
 
-    if (!studentID) {
+    if (!studentID || !studentID.trim()) {
       return Response.json(
         { success: false, error: 'studentID is required.' },
         { status: 400 }
@@ -18,7 +18,7 @@ export async function GET(request) {
     );
 
     // Fetch student profile and parents info
-    let studentIDToQuery = studentID;
+    let studentIDToQuery = studentID.trim();
     let { data: student, error: studentError } = await supabase
       .from('students')
       .select(`
@@ -27,13 +27,15 @@ export async function GET(request) {
         father_name,
         mother_name,
         status,
+        class,
+        total_annual_fees,
         parents_guardian (father_name, mother_name)
       `)
       .ilike('student_id', studentIDToQuery)
       .maybeSingle();
 
-    if (!student && /^\d+$/.test(studentID)) {
-      const fallbackID = `SIC-${studentID}`;
+    if (!student && /^\d+$/.test(studentIDToQuery)) {
+      const fallbackID = `SIC-${studentIDToQuery}`;
       const { data: studentFallback, error: fallbackError } = await supabase
         .from('students')
         .select(`
@@ -42,6 +44,8 @@ export async function GET(request) {
           father_name,
           mother_name,
           status,
+          class,
+          total_annual_fees,
           parents_guardian (father_name, mother_name)
         `)
         .ilike('student_id', fallbackID)
@@ -70,10 +74,9 @@ export async function GET(request) {
     // Fetch latest balance and class details from the view
     const { data: balanceData } = await supabase
       .from('student_fee_balances')
-      .select('class_assigned, remaining_balance')
+      .select('class_assigned, remaining_balance, total_annual_fee, total_received')
       .ilike('student_id', studentIDToQuery)
       .maybeSingle();
-
 
     const parent = student.parents_guardian?.[0];
     const fatherName = student.father_name || parent?.father_name;
@@ -83,10 +86,26 @@ export async function GET(request) {
       .join(' / ');
 
     const status = student.status || 'active';
-    let balance = balanceData?.remaining_balance ?? 0;
+
+    let balance = 0;
     if (status === 'left') {
       balance = 0;
+    } else if (balanceData && balanceData.remaining_balance !== undefined && balanceData.remaining_balance !== null) {
+      balance = Number(balanceData.remaining_balance);
+    } else {
+      // Fallback calculation: total annual fees minus sum of paid fee transactions
+      const totalFee = Number(student.total_annual_fees || 0);
+      const { data: txs } = await supabase
+        .from('fee_transactions')
+        .select('amount_received')
+        .ilike('student_id', student.student_id);
+
+      const totalReceived = (txs || []).reduce((sum, tx) => sum + (Number(tx.amount_received) || 0), 0);
+      balance = Math.max(0, totalFee - totalReceived);
     }
+
+    const rawClass = balanceData?.class_assigned || student.class || 'Not Enrolled';
+    const cleanClass = String(rawClass).replace(/^Class\s+/i, '').trim();
 
     return Response.json(
       {
@@ -95,7 +114,7 @@ export async function GET(request) {
           StudentID: student.student_id,
           StudentName: student.student_name || '',
           fatherMotherName: fatherMotherName || '',
-          Class: balanceData?.class_assigned ? balanceData.class_assigned.replace(/^Class\s+/i, '') : (student.class || 'Not Enrolled'),
+          Class: cleanClass,
           balance: balance,
           status: status,
         },
@@ -109,4 +128,5 @@ export async function GET(request) {
     );
   }
 }
+
 
