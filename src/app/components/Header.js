@@ -29,21 +29,21 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left section: Back button or Logo */}
-          <div className="flex-1 flex items-center">
+          <div className="flex-1 flex items-center space-x-3">
             {!isDashboard ? (
               <a
                 href="/dashboard"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:text-blue-600 transition-all duration-200 shadow-sm group"
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:text-blue-600 transition-all duration-200 shadow-sm group"
               >
                 <svg
-                  className="w-5 h-5 mr-2 -ml-1 text-gray-500 group-hover:text-blue-600 transform group-hover:-translate-x-1 transition-transform duration-200"
+                  className="w-4 h-4 mr-1.5 text-gray-500 group-hover:text-blue-600 transform group-hover:-translate-x-1 transition-transform duration-200"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                BACK TO DASHBOARD
+                Dashboard
               </a>
             ) : (
               <div className="flex items-center space-x-2">
@@ -52,9 +52,24 @@ export default function Header() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <span className="text-lg font-bold text-gray-900">Shivam Education</span>
+                <span className="text-base sm:text-lg font-bold text-gray-900">Shivam Education</span>
               </div>
             )}
+
+            {/* Quick Navigation to Income & Expenses */}
+            <a
+              href="/income-expenses"
+              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm ${
+                pathname === '/income-expenses'
+                  ? 'bg-purple-700 text-white'
+                  : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
+              }`}
+            >
+              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Income & Expenses
+            </a>
           </div>
 
           {/* Right section: User profile & Logout */}

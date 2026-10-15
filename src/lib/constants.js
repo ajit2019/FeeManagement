@@ -46,3 +46,28 @@ export const sortClasses = (arr) => {
     return a.localeCompare(b);
   });
 };
+
+export const EXPENSE_HEADS = [
+  'Stationery',
+  'Teacher Salary',
+  'Staff Salary',
+  'CCTV',
+  'Electricity',
+  'Water Bill',
+  'Laboratory',
+  'Transport',
+  'Cleaning/Housekeeping',
+  'Examination Expenses',
+  'Board Fee',
+  'Administrative Fee',
+  'Operational Maintenance',
+  'Building Maintenance',
+  'Computer/IT',
+  'Library',
+  'Sports & Activities',
+  'Security',
+  'Internet/Phone',
+  'Miscellaneous',
+];
+
+export const PAYMENT_MODES = ['Cash', 'Cheque', 'UPI', 'Bank Transfer'];

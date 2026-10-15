@@ -97,6 +97,18 @@ export default function Dashboard() {
       ),
     },
     {
+      href: '/income-expenses',
+      title: 'Income & Expenses (Cash Book)',
+      badge: 'NEW',
+      description: 'Monthly cash book ledger, voucher expenses, other income, and running cash balance.',
+      color: 'from-purple-600 to-indigo-700',
+      icon: (
+        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
       href: '/balance',
       title: 'Class Balance Summary',
       description: 'Get class-wise balance fees, view total dues, and export stats.',
@@ -136,18 +148,31 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto w-full space-y-10">
         
         {/* Top Header */}
-        <div className="border-b border-gray-200 pb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-              Shivam School Panel
-            </h1>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-              Dashboard
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+                Shivam School Panel
+              </h1>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                Dashboard
+              </span>
+            </div>
+            <p className="mt-1 text-sm sm:text-base text-gray-500">
+              Student fee management, admissions, records, and financial summary.
+            </p>
           </div>
-          <p className="mt-1 text-sm sm:text-base text-gray-500">
-            Student fee management, admissions, records, and financial summary.
-          </p>
+
+          <Link
+            href="/income-expenses"
+            className="inline-flex items-center self-start sm:self-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 shadow-md hover:shadow-lg transition-all gap-2 group border border-purple-500/40"
+          >
+            <svg className="w-5 h-5 text-purple-200 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span>Open Income & Expenses</span>
+            <span className="bg-purple-900/70 text-purple-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-md border border-purple-400/30">New</span>
+          </Link>
         </div>
 
         {/* Student Management Modules Section (Top) */}
@@ -175,8 +200,15 @@ export default function Dashboard() {
                 className="group relative bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300`}>
-                    {link.icon}
+                  <div className="flex items-center justify-between">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                      {link.icon}
+                    </div>
+                    {link.badge && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200 uppercase tracking-wider">
+                        {link.badge}
+                      </span>
+                    )}
                   </div>
                   <h3 className="mt-5 text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
                     {link.title}
