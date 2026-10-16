@@ -47,8 +47,50 @@ export default function AdmissionForm() {
   const printRef = useRef(null);
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingRoll, setIsCheckingRoll] = useState(false);
   const [isLoadingStudentId, setIsLoadingStudentId] = useState(true);
   const [formData, setFormData] = useState(() => ({ ...emptyFormFields }));
+
+  const checkRollNoDuplicate = async (cls, roll) => {
+    const rawClass = String(cls || '').replace(/^Class\s+/i, '').trim();
+    const rollTrimmed = String(roll || '').trim();
+
+    if (!rawClass || !rollTrimmed) {
+      return false;
+    }
+
+    setIsCheckingRoll(true);
+    try {
+      const response = await fetch(
+        `/api/admission/check-roll-no?class=${encodeURIComponent(rawClass)}&rollNo=${encodeURIComponent(rollTrimmed)}`
+      );
+      const data = await response.json();
+
+      if (data.exists) {
+        const errorMsg =
+          data.message ||
+          `Roll No. ${rollTrimmed} is already assigned in Class ${rawClass}.`;
+        setValidationErrors((prev) => ({
+          ...prev,
+          rollNo: errorMsg,
+        }));
+        return true;
+      } else {
+        setValidationErrors((prev) => {
+          if (!prev.rollNo) return prev;
+          const next = { ...prev };
+          delete next.rollNo;
+          return next;
+        });
+        return false;
+      }
+    } catch (err) {
+      console.error('Failed to verify roll number duplicate:', err);
+      return false;
+    } finally {
+      setIsCheckingRoll(false);
+    }
+  };
 
   const fetchNextStudentID = async () => {
     try {
@@ -208,9 +250,44 @@ export default function AdmissionForm() {
     },
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationErrors({});
+
+    const errors = {};
+    if (!formData.studentName?.trim()) {
+      errors.studentName = 'Student Name is required.';
+    }
+    if (!formData.fatherName?.trim()) {
+      errors.fatherName = 'Father Name is required.';
+    }
+    if (!formData.motherName?.trim()) {
+      errors.motherName = 'Mother Name is required.';
+    }
+    if (!formData.class?.trim()) {
+      errors.class = 'Class is required.';
+    }
+
+    // Check duplicate Roll No before printing / submitting
+    if (formData.class?.trim() && formData.rollNo) {
+      const isDuplicate = await checkRollNoDuplicate(formData.class, formData.rollNo);
+      if (isDuplicate) {
+        errors.rollNo = `Roll No. ${formData.rollNo} is already assigned in Class ${formData.class.trim()}.`;
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors((prev) => ({ ...prev, ...errors }));
+      if (errors.rollNo) {
+        alert(
+          `Duplicate Roll No Error: Roll No. ${formData.rollNo} is already assigned in Class ${formData.class.trim()}. Please assign a different Roll No.`
+        );
+      } else {
+        alert('Please fill all required fields highlighted in red.');
+      }
+      return;
+    }
+
     setIsSubmitting(true);
     handlePrint();
   };
@@ -356,20 +433,41 @@ export default function AdmissionForm() {
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1">Roll No</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  name="rollNo"
-                  value={formData.rollNo}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    handleInputChange({ target: { name: 'rollNo', value: val } });
-                  }}
-                  placeholder="e.g., 1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    name="rollNo"
+                    value={formData.rollNo}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      handleInputChange({ target: { name: 'rollNo', value: val } });
+                    }}
+                    onBlur={() => {
+                      if (formData.class && formData.rollNo) {
+                        checkRollNoDuplicate(formData.class, formData.rollNo);
+                      }
+                    }}
+                    placeholder="e.g., 1"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                      validationErrors.rollNo
+                        ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                  />
+                  {isCheckingRoll && (
+                    <span className="absolute right-3 top-2.5 text-xs text-blue-600 font-medium animate-pulse">
+                      Checking...
+                    </span>
+                  )}
+                </div>
                 {validationErrors.rollNo && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.rollNo}</p>
+                  <p className="text-red-600 text-xs sm:text-sm font-semibold mt-1.5 flex items-start">
+                    <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>{validationErrors.rollNo}</span>
+                  </p>
                 )}
               </div>
               <div>
@@ -378,9 +476,23 @@ export default function AdmissionForm() {
                   type="text"
                   name="class"
                   value={formData.class}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    if (formData.rollNo && e.target.value) {
+                      checkRollNoDuplicate(e.target.value, formData.rollNo);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (formData.class && formData.rollNo) {
+                      checkRollNoDuplicate(formData.class, formData.rollNo);
+                    }
+                  }}
                   placeholder="e.g., 11, 12, LKG, AT1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    validationErrors.class
+                      ? 'border-red-500 bg-red-50 focus:ring-red-400'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
                   required
                 />
                 {validationErrors.class && (
@@ -732,10 +844,10 @@ export default function AdmissionForm() {
           <div className="flex flex-col md:flex-row gap-4 justify-center pt-6 print:hidden">
             <button
               type="submit"
-              disabled={isSubmitting || isLoadingStudentId || !formData.StudentID}
+              disabled={isSubmitting || isCheckingRoll || isLoadingStudentId || !formData.StudentID}
               className="px-8 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition duration-200"
             >
-              {isSubmitting ? 'Printing & Saving...' : 'Print & Save'}
+              {isSubmitting ? 'Printing & Saving...' : isCheckingRoll ? 'Checking Roll No...' : 'Print & Save'}
             </button>
             <button
               type="button"

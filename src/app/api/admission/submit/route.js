@@ -45,6 +45,17 @@ function validateAdmissionPayload(payload) {
   }
 
   if (
+    payload.RollNo !== null &&
+    payload.RollNo !== undefined &&
+    payload.RollNo !== ''
+  ) {
+    const rollVal = Number(payload.RollNo);
+    if (Number.isNaN(rollVal) || rollVal <= 0) {
+      errors.RollNo = 'RollNo must be a valid positive number.';
+    }
+  }
+
+  if (
     payload.TotalAnnualFees !== null &&
     payload.TotalAnnualFees !== undefined &&
     payload.TotalAnnualFees !== ''
@@ -78,6 +89,83 @@ export async function POST(request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
+
+    // 1. Check for Duplicate Roll Number in the same Class
+    const rawClass = String(formData.Class || '').trim().replace(/^Class\s+/i, '');
+    const rollNoVal =
+      formData.RollNo !== null && formData.RollNo !== undefined && formData.RollNo !== ''
+        ? parseInt(formData.RollNo, 10)
+        : null;
+
+    if (rawClass && rollNoVal !== null && !Number.isNaN(rollNoVal)) {
+      // Check duplicate in students table
+      const { data: existingStudents, error: checkStudentErr } = await supabase
+        .from('students')
+        .select('student_id, student_name, class, roll_no')
+        .eq('class', rawClass)
+        .or(`roll_no.eq.${rollNoVal},roll_no.eq.${formData.RollNo}`);
+
+      if (checkStudentErr) {
+        console.error('Check duplicate student query error:', checkStudentErr);
+      }
+
+      if (existingStudents && existingStudents.length > 0) {
+        const dup = existingStudents[0];
+        const errorMsg = `Roll number ${rollNoVal} is already assigned to student ${dup.student_name || 'another student'} (${dup.student_id}) in Class ${rawClass}.`;
+        return Response.json(
+          {
+            success: false,
+            error: errorMsg,
+            validationErrors: {
+              RollNo: errorMsg,
+            },
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check duplicate in student_enrollments / classes table
+      const className = `Class ${rawClass}`;
+      const { data: classCheck } = await supabase
+        .from('classes')
+        .select('id')
+        .or(`class_name.eq.${className},class_name.eq.${rawClass}`)
+        .maybeSingle();
+
+      if (classCheck) {
+        const { data: existingEnrollment, error: checkEnrollErr } = await supabase
+          .from('student_enrollments')
+          .select(`
+            student_id,
+            roll_number,
+            students (
+              student_name
+            )
+          `)
+          .eq('class_id', classCheck.id)
+          .eq('roll_number', rollNoVal)
+          .maybeSingle();
+
+        if (checkEnrollErr) {
+          console.error('Check duplicate enrollment error:', checkEnrollErr);
+        }
+
+        if (existingEnrollment) {
+          const studentName = existingEnrollment.students?.student_name || 'another student';
+          const errorMsg = `Roll number ${rollNoVal} is already assigned to student ${studentName} (${existingEnrollment.student_id}) in Class ${rawClass}.`;
+          return Response.json(
+            {
+              success: false,
+              error: errorMsg,
+              validationErrors: {
+                RollNo: errorMsg,
+              },
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     // 2. Insert into students table using current schema columns (and fallback column names)
     const { error: studentError } = await supabase
@@ -151,7 +239,6 @@ export async function POST(request) {
     }
 
     // 4. Resolve and ensure Class ID exists
-    const rawClass = String(formData.Class || '').trim().replace(/^Class\s+/i, '');
     const className = `Class ${rawClass}`;
     let { data: classData } = await supabase
       .from('classes')
