@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { localDb, isMissingTableError } from '@/lib/localExpensesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,6 @@ export async function GET(request) {
     if (date) {
       query = query.eq('date', date);
     } else if (month) {
-      // Filter for month range
       const [year, m] = month.split('-').map(Number);
       const startDate = `${year}-${String(m).padStart(2, '0')}-01`;
       const nextMonthYear = m === 12 ? year + 1 : year;
@@ -38,25 +38,47 @@ export async function GET(request) {
 
     const { data, error } = await query;
 
+    if (error && isMissingTableError(error)) {
+      // Fallback to local database
+      const localList = localDb.getExpenses({ month, date });
+      return Response.json({
+        success: true,
+        expenses: localList,
+        storage: 'local',
+        needsSetup: true,
+      });
+    }
+
     if (error) {
-      // Check if table missing
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        return Response.json({
-          success: false,
-          needsSetup: true,
-          error: "Table 'expense_vouchers' does not exist yet. Please run the SQL setup script in Supabase.",
-        }, { status: 200 });
-      }
       return Response.json({ success: false, error: error.message }, { status: 400 });
+    }
+
+    // Merge any un-synced local records with Supabase data
+    const localList = localDb.getExpenses({ month, date });
+    const existingIds = new Set((data || []).map((d) => d.id));
+    const combined = [...(data || [])];
+    for (const item of localList) {
+      if (!existingIds.has(item.id)) {
+        combined.push(item);
+      }
     }
 
     return Response.json({
       success: true,
-      expenses: data || [],
+      expenses: combined,
+      storage: localList.length > 0 ? 'mixed' : 'supabase',
+      needsSetup: false,
     });
   } catch (err) {
     console.error('API Expenses GET error:', err);
-    return Response.json({ success: false, error: err.message }, { status: 500 });
+    // If anything failed, return local data safely
+    const localList = localDb.getExpenses();
+    return Response.json({
+      success: true,
+      expenses: localList,
+      storage: 'local',
+      needsSetup: true,
+    });
   }
 }
 
@@ -89,8 +111,6 @@ export async function POST(request) {
       return Response.json({ success: false, error: 'Expense Head is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
-
     const insertData = {
       voucher_no: voucher_no ? String(voucher_no).trim() : null,
       date,
@@ -103,26 +123,34 @@ export async function POST(request) {
       remarks: remarks ? String(remarks).trim() : null,
     };
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('expense_vouchers')
       .insert([insertData])
       .select();
 
+    if (error && isMissingTableError(error)) {
+      // Fallback: Save to local persistent database
+      const localRecord = localDb.insertExpense(insertData);
+      return Response.json({
+        success: true,
+        voucher: localRecord,
+        storage: 'local',
+        needsSetup: true,
+        message: 'Expense saved to local database (Supabase table setup pending).',
+      });
+    }
+
     if (error) {
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        return Response.json({
-          success: false,
-          needsSetup: true,
-          error: "Table 'expense_vouchers' does not exist yet. Please run the SQL setup script in Supabase.",
-        }, { status: 400 });
-      }
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
 
     return Response.json({
       success: true,
       voucher: data?.[0],
-      message: 'Expense voucher saved successfully.',
+      storage: 'supabase',
+      needsSetup: false,
+      message: 'Expense voucher saved successfully to database.',
     });
   } catch (err) {
     console.error('API Expenses POST error:', err);
@@ -155,13 +183,34 @@ export async function PUT(request) {
       .eq('id', id)
       .select();
 
+    if (error && isMissingTableError(error)) {
+      const localUpdated = localDb.updateExpense(id, updateFields);
+      return Response.json({
+        success: true,
+        voucher: localUpdated,
+        storage: 'local',
+        message: 'Expense updated in local database.',
+      });
+    }
+
     if (error) {
+      // If not found in Supabase, also check local
+      const localUpdated = localDb.updateExpense(id, updateFields);
+      if (localUpdated) {
+        return Response.json({
+          success: true,
+          voucher: localUpdated,
+          storage: 'local',
+          message: 'Expense updated in local database.',
+        });
+      }
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
 
     return Response.json({
       success: true,
       voucher: data?.[0],
+      storage: 'supabase',
       message: 'Expense updated successfully.',
     });
   } catch (err) {
@@ -186,7 +235,10 @@ export async function DELETE(request) {
       .delete()
       .eq('id', id);
 
-    if (error) {
+    // Also delete from local database if it was stored locally
+    localDb.deleteExpense(id);
+
+    if (error && !isMissingTableError(error)) {
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
 

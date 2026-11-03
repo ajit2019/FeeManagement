@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { localDb, isMissingTableError } from '@/lib/localExpensesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,20 +34,30 @@ export async function POST(request) {
       })
       .select();
 
+    if (error && isMissingTableError(error)) {
+      // Save locally
+      const localResult = localDb.upsertOpeningBalance(month_key, balanceNum);
+      return Response.json({
+        success: true,
+        data: localResult,
+        storage: 'local',
+        needsSetup: true,
+        message: 'Opening balance updated in local database (Supabase table setup pending).',
+      });
+    }
+
     if (error) {
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        return Response.json({
-          success: false,
-          needsSetup: true,
-          error: "Table 'monthly_opening_balances' does not exist yet. Please run the SQL setup script.",
-        }, { status: 400 });
-      }
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
+
+    // Also update local store for consistency
+    localDb.upsertOpeningBalance(month_key, balanceNum);
 
     return Response.json({
       success: true,
       data: data?.[0],
+      storage: 'supabase',
+      needsSetup: false,
       message: 'Opening balance updated successfully.',
     });
   } catch (err) {

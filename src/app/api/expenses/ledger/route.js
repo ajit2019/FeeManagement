@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSequentialSlips } from '@/lib/slips';
+import { localDb, isMissingTableError } from '@/lib/localExpensesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,21 +31,30 @@ export async function GET(request) {
     const endDate = `${nextMonthYear}-${String(nextMonthM).padStart(2, '0')}-01`;
 
     const supabase = getSupabase();
+    let needsSetup = false;
 
     // 1. Fetch Opening Balance for this month
     let openingBalance = 0;
     try {
-      const { data: balanceData } = await supabase
+      const { data: balanceData, error: balErr } = await supabase
         .from('monthly_opening_balances')
         .select('opening_balance')
         .eq('month_key', month)
         .maybeSingle();
 
-      if (balanceData && balanceData.opening_balance !== null) {
+      if (balErr && isMissingTableError(balErr)) {
+        needsSetup = true;
+        const localBal = localDb.getOpeningBalance(month);
+        if (localBal !== null) openingBalance = localBal;
+      } else if (balanceData && balanceData.opening_balance !== null) {
         openingBalance = Number(balanceData.opening_balance) || 0;
+      } else {
+        const localBal = localDb.getOpeningBalance(month);
+        if (localBal !== null) openingBalance = localBal;
       }
     } catch (e) {
-      // Table might not exist yet; default to 0
+      const localBal = localDb.getOpeningBalance(month);
+      if (localBal !== null) openingBalance = localBal;
     }
 
     // 2. Fetch all fee transactions (for sequential slip numbers and fee income)
@@ -71,7 +81,6 @@ export async function GET(request) {
             }
             feeIncomeMap[dateStr].amount += amt;
             if (slipNo) {
-              // Extract numeric part if formatted like SICF-00556
               const match = slipNo.match(/\d+$/);
               feeIncomeMap[dateStr].slips.add(match ? match[0] : slipNo);
             }
@@ -86,69 +95,101 @@ export async function GET(request) {
     let otherIncomeMap = {}; // date -> [{ id, source_title, receipt_no, amount, head }]
     let cumulativeOtherIncome = 0;
     try {
-      const { data: allOtherIncomes } = await supabase
+      let allOtherIncomes = [];
+      const { data: supOther, error: otherErr } = await supabase
         .from('other_income')
         .select('*');
 
-      if (allOtherIncomes) {
-        allOtherIncomes.forEach((inc) => {
-          const amt = Number(inc.amount || 0);
-          cumulativeOtherIncome += amt;
-
-          if (inc.date >= startDate && inc.date < endDate) {
-            const dateStr = inc.date;
-            if (!otherIncomeMap[dateStr]) {
-              otherIncomeMap[dateStr] = [];
-            }
-            otherIncomeMap[dateStr].push(inc);
-          }
-        });
+      if (otherErr && isMissingTableError(otherErr)) {
+        needsSetup = true;
+        allOtherIncomes = localDb.getAllOtherIncome();
+      } else if (supOther) {
+        allOtherIncomes = [...supOther];
+        const supIds = new Set(supOther.map((o) => o.id));
+        for (const loc of localDb.getAllOtherIncome()) {
+          if (!supIds.has(loc.id)) allOtherIncomes.push(loc);
+        }
+      } else {
+        allOtherIncomes = localDb.getAllOtherIncome();
       }
+
+      allOtherIncomes.forEach((inc) => {
+        const amt = Number(inc.amount || 0);
+        cumulativeOtherIncome += amt;
+
+        if (inc.date >= startDate && inc.date < endDate) {
+          const dateStr = inc.date;
+          if (!otherIncomeMap[dateStr]) {
+            otherIncomeMap[dateStr] = [];
+          }
+          otherIncomeMap[dateStr].push(inc);
+        }
+      });
     } catch (e) {
-      // Table might not exist yet
+      console.warn('Error fetching other_income for ledger:', e);
     }
 
     // 4. Fetch Expense Vouchers for this month & Cumulative All-Time
     let expenseMap = {}; // date -> [voucher]
     let categoryBreakdown = {};
     let cumulativeTotalExpense = 0;
-    let needsSetup = false;
 
     try {
-      const { data: allExpenses, error: expError } = await supabase
+      let allExpenses = [];
+      const { data: supExpenses, error: expError } = await supabase
         .from('expense_vouchers')
         .select('*')
         .order('date', { ascending: true })
         .order('created_at', { ascending: true });
 
-      if (expError) {
-        if (expError.code === '42P01' || expError.message?.includes('does not exist')) {
-          needsSetup = true;
+      if (expError && isMissingTableError(expError)) {
+        needsSetup = true;
+        allExpenses = localDb.getAllExpenses();
+      } else if (supExpenses) {
+        allExpenses = [...supExpenses];
+        const supIds = new Set(supExpenses.map((e) => e.id));
+        for (const loc of localDb.getAllExpenses()) {
+          if (!supIds.has(loc.id)) allExpenses.push(loc);
         }
-      } else if (allExpenses) {
-        allExpenses.forEach((exp) => {
-          const amt = Number(exp.amount || 0);
-          cumulativeTotalExpense += amt;
-
-          if (exp.date >= startDate && exp.date < endDate) {
-            const dateStr = exp.date;
-            const head = exp.expense_head || 'Miscellaneous';
-
-            if (!expenseMap[dateStr]) {
-              expenseMap[dateStr] = [];
-            }
-            expenseMap[dateStr].push(exp);
-
-            categoryBreakdown[head] = (categoryBreakdown[head] || 0) + amt;
-          }
-        });
+      } else {
+        allExpenses = localDb.getAllExpenses();
       }
+
+      allExpenses.forEach((exp) => {
+        const amt = Number(exp.amount || 0);
+        cumulativeTotalExpense += amt;
+
+        if (exp.date >= startDate && exp.date < endDate) {
+          const dateStr = exp.date;
+          const head = exp.expense_head || 'Miscellaneous';
+
+          if (!expenseMap[dateStr]) {
+            expenseMap[dateStr] = [];
+          }
+          expenseMap[dateStr].push(exp);
+
+          categoryBreakdown[head] = (categoryBreakdown[head] || 0) + amt;
+        }
+      });
     } catch (e) {
       console.error('Error fetching expenses for ledger:', e);
+      const localExpenses = localDb.getAllExpenses();
+      localExpenses.forEach((exp) => {
+        const amt = Number(exp.amount || 0);
+        cumulativeTotalExpense += amt;
+
+        if (exp.date >= startDate && exp.date < endDate) {
+          const dateStr = exp.date;
+          const head = exp.expense_head || 'Miscellaneous';
+          if (!expenseMap[dateStr]) expenseMap[dateStr] = [];
+          expenseMap[dateStr].push(exp);
+          categoryBreakdown[head] = (categoryBreakdown[head] || 0) + amt;
+        }
+      });
     }
 
     // Base initial opening balance from earliest record
-    let earliestOpeningBalance = 0;
+    let earliestOpeningBalance = openingBalance;
     try {
       const { data: firstBalance } = await supabase
         .from('monthly_opening_balances')
@@ -166,7 +207,6 @@ export async function GET(request) {
     const cumulativeCashBalance = earliestOpeningBalance + cumulativeTotalIncome - cumulativeTotalExpense;
 
     // 5. Build Day-by-Day Rows
-    // We can include all days of the month, or only days with transactions
     let runningBalance = openingBalance;
     let totalIncome = 0;
     let totalExpense = 0;
@@ -221,7 +261,7 @@ export async function GET(request) {
         }
       }
 
-      // Heads summary (matches Image 1 where Head column represents Income Head like "Online", "Cash", etc.)
+      // Heads summary
       let headSummary = '-';
       if (dayTotalIncome > 0) {
         const incomeModes = new Set();
@@ -234,7 +274,7 @@ export async function GET(request) {
         headSummary = Array.from(expenseModes).join(', ');
       }
 
-      // Expense details summary text (similar to Image 1)
+      // Expense details summary text
       let expenseDetailsList = [];
       dayVouchers.forEach((v) => {
         let line = v.purpose ? v.purpose : v.expense_head;
@@ -249,7 +289,6 @@ export async function GET(request) {
       totalIncome += dayTotalIncome;
       totalExpense += dayTotalExpense;
 
-      // Only push if there was activity OR push anyway for full daybook
       const hasActivity = dayTotalIncome > 0 || dayTotalExpense > 0 || dayVouchers.length > 0;
 
       days.push({
@@ -285,7 +324,7 @@ export async function GET(request) {
         openingBalance,
         totalIncome,
         totalExpense,
-        cashBalance: runningBalance, // Final closing balance for this month
+        cashBalance: runningBalance,
       },
       categoryBreakdown,
       ledger: days,

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { localDb, isMissingTableError } from '@/lib/localExpensesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,33 +49,42 @@ export async function POST(request) {
     const finalHead = head || payment_mode || 'Online';
     const finalTitle = source_title ? String(source_title).trim() : 'Fee / Income Collection';
 
+    const insertData = {
+      date,
+      source_title: finalTitle,
+      receipt_no: finalReceiptNo || null,
+      amount: amt,
+      payment_mode: finalHead,
+      remarks: remarks ? String(remarks).trim() : null,
+    };
+
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('other_income')
-      .insert([{
-        date,
-        source_title: finalTitle,
-        receipt_no: finalReceiptNo || null,
-        amount: amt,
-        payment_mode: finalHead,
-        remarks: remarks ? String(remarks).trim() : null,
-      }])
+      .insert([insertData])
       .select();
 
+    if (error && isMissingTableError(error)) {
+      // Fallback: save to local persistent store
+      const localRecord = localDb.insertOtherIncome(insertData);
+      return Response.json({
+        success: true,
+        data: localRecord,
+        storage: 'local',
+        needsSetup: true,
+        message: 'Income entry added to local database (Supabase table setup pending).',
+      });
+    }
+
     if (error) {
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        return Response.json({
-          success: false,
-          needsSetup: true,
-          error: "Table 'other_income' does not exist yet. Please run the SQL setup script.",
-        }, { status: 400 });
-      }
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
 
     return Response.json({
       success: true,
       data: data?.[0],
+      storage: 'supabase',
+      needsSetup: false,
       message: 'Income entry added successfully.',
     });
   } catch (err) {
@@ -99,7 +109,10 @@ export async function DELETE(request) {
       .delete()
       .eq('id', id);
 
-    if (error) {
+    // Also remove from local database if it was saved locally
+    localDb.deleteOtherIncome(id);
+
+    if (error && !isMissingTableError(error)) {
       return Response.json({ success: false, error: error.message }, { status: 400 });
     }
 

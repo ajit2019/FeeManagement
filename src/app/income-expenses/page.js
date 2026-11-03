@@ -21,6 +21,9 @@ export default function IncomeExpensesDashboard() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [activeOnly, setActiveOnly] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [setupInfo, setSetupInfo] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState('');
 
   // Modals state
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -76,11 +79,50 @@ export default function IncomeExpensesDashboard() {
       if (data.summary?.openingBalance !== undefined) {
         setOpeningBalanceInput(String(data.summary.openingBalance));
       }
+      checkSetupStatus();
     } catch (err) {
       console.error(err);
       setError(err.message || 'Error loading dashboard ledger.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkSetupStatus = async () => {
+    try {
+      const res = await fetch('/api/expenses/setup');
+      const data = await res.json();
+      if (data.success) {
+        setSetupInfo(data);
+        if (data.allTablesReady) {
+          setNeedsSetup(false);
+        }
+      }
+    } catch (e) {
+      console.warn('Setup status check error:', e);
+    }
+  };
+
+  const handleSyncToSupabase = async () => {
+    try {
+      setIsSyncing(true);
+      setSyncStatusMsg('');
+      const res = await fetch('/api/expenses/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_to_supabase' }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to sync.');
+      }
+      setSyncStatusMsg(data.message || 'Synced successfully!');
+      await fetchLedger(selectedMonth);
+      await checkSetupStatus();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -283,13 +325,19 @@ export default function IncomeExpensesDashboard() {
   };
 
   // Copy SQL script
-  const sqlSetupScript = `-- Run this in your Supabase SQL Editor:
-CREATE TABLE IF NOT EXISTS expense_vouchers (
+  const sqlSetupScript = `-- ==============================================================
+-- SHIVAM INTER COLLEGE - FEE & EXPENSE MANAGEMENT SYSTEM
+-- Run this in your Supabase SQL Editor:
+-- https://supabase.com/dashboard/project/jqqcvsapzmejyumigytg/sql/new
+-- ==============================================================
+
+-- 1. Table: expense_vouchers
+CREATE TABLE IF NOT EXISTS public.expense_vouchers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   voucher_no TEXT,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   paid_to TEXT NOT NULL,
-  amount NUMERIC(12, 2) NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
   purpose TEXT,
   expense_head TEXT NOT NULL,
   payment_mode TEXT NOT NULL DEFAULT 'Cash',
@@ -298,22 +346,56 @@ CREATE TABLE IF NOT EXISTS expense_vouchers (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS other_income (
+CREATE INDEX IF NOT EXISTS idx_expense_vouchers_date ON public.expense_vouchers(date);
+CREATE INDEX IF NOT EXISTS idx_expense_vouchers_expense_head ON public.expense_vouchers(expense_head);
+
+-- 2. Table: other_income
+CREATE TABLE IF NOT EXISTS public.other_income (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   source_title TEXT NOT NULL,
   receipt_no TEXT,
-  amount NUMERIC(12, 2) NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
   payment_mode TEXT NOT NULL DEFAULT 'Online',
   remarks TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS monthly_opening_balances (
+CREATE INDEX IF NOT EXISTS idx_other_income_date ON public.other_income(date);
+
+-- 3. Table: monthly_opening_balances
+CREATE TABLE IF NOT EXISTS public.monthly_opening_balances (
   month_key TEXT PRIMARY KEY,
   opening_balance NUMERIC(12, 2) DEFAULT 0.00,
   updated_at TIMESTAMPTZ DEFAULT NOW()
-);`;
+);
+
+-- Row Level Security (RLS) & Policies
+ALTER TABLE public.expense_vouchers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.other_income ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.monthly_opening_balances ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow service role full access on expense_vouchers" ON public.expense_vouchers;
+DROP POLICY IF EXISTS "Allow anon read and insert on expense_vouchers" ON public.expense_vouchers;
+DROP POLICY IF EXISTS "Allow service role full access on other_income" ON public.other_income;
+DROP POLICY IF EXISTS "Allow anon read and insert on other_income" ON public.other_income;
+DROP POLICY IF EXISTS "Allow service role full access on monthly_opening_balances" ON public.monthly_opening_balances;
+DROP POLICY IF EXISTS "Allow anon read and insert on monthly_opening_balances" ON public.monthly_opening_balances;
+
+CREATE POLICY "Allow service role full access on expense_vouchers" ON public.expense_vouchers FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon read and insert on expense_vouchers" ON public.expense_vouchers FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow service role full access on other_income" ON public.other_income FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon read and insert on other_income" ON public.other_income FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow service role full access on monthly_opening_balances" ON public.monthly_opening_balances FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon read and insert on monthly_opening_balances" ON public.monthly_opening_balances FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+GRANT ALL ON public.expense_vouchers TO postgres, service_role, anon, authenticated;
+GRANT ALL ON public.other_income TO postgres, service_role, anon, authenticated;
+GRANT ALL ON public.monthly_opening_balances TO postgres, service_role, anon, authenticated;
+
+NOTIFY pgrst, 'reload schema';`;
 
   const copySqlToClipboard = () => {
     navigator.clipboard.writeText(sqlSetupScript);
@@ -335,6 +417,17 @@ CREATE TABLE IF NOT EXISTS monthly_opening_balances (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                 Cash Book Ledger
               </span>
+              {setupInfo?.allTablesReady ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                  Supabase Cloud Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse"></span>
+                  Local DB Active
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-500 mt-1">
               Monthly day-book, student fee income, voucher expenses, and running cash balance.
@@ -384,29 +477,72 @@ CREATE TABLE IF NOT EXISTS monthly_opening_balances (
           </div>
         </div>
 
-        {/* Supabase Missing Table Setup Notice */}
+        {/* Database Status & Setup Banner */}
         {needsSetup && (
-          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 text-amber-900 font-bold">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Database Tables Setup Required in Supabase</span>
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <div>
+                  <span className="font-bold text-amber-950 text-sm sm:text-base block">
+                    Local Database Active &mdash; Entries are saved &amp; tracked immediately
+                  </span>
+                  <span className="text-xs text-amber-800">
+                    {setupInfo?.localRecordCounts?.expenses || 0} expenses &bull; {setupInfo?.localRecordCounts?.otherIncome || 0} other income recorded locally.
+                  </span>
+                </div>
               </div>
-              <button
-                onClick={copySqlToClipboard}
-                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
-              >
-                {copiedSql ? '✓ Copied SQL!' : 'Copy SQL Script'}
-              </button>
+              <div className="flex items-center gap-2">
+                {setupInfo?.canSync && (
+                  <button
+                    onClick={handleSyncToSupabase}
+                    disabled={isSyncing}
+                    className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5"
+                  >
+                    <svg className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {isSyncing ? 'Syncing...' : 'Sync to Supabase Cloud'}
+                  </button>
+                )}
+                <button
+                  onClick={checkSetupStatus}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg transition shadow-sm"
+                  title="Check if Supabase tables have been created"
+                >
+                  Verify Supabase Tables
+                </button>
+                <button
+                  onClick={copySqlToClipboard}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition shadow-sm"
+                >
+                  {copiedSql ? '✓ Copied SQL!' : 'Copy SQL Script'}
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-amber-800 leading-relaxed">
-              To store manual expenses and other income, paste and run this SQL script in your{' '}
-              <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold">
-                Supabase SQL Editor
-              </a>. Once executed, reload this page to start recording entries immediately.
+
+            <p className="text-xs text-amber-900 leading-relaxed">
+              You can insert and edit expenses, receipts, and balances right away &mdash; data is safely stored in your local persistent database.
+              To connect tables to Supabase Cloud, paste and execute the script below in your{' '}
+              <a
+                href="https://supabase.com/dashboard/project/jqqcvsapzmejyumigytg/sql/new"
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-bold text-amber-950 hover:text-blue-700"
+              >
+                Supabase SQL Editor (click to open)
+              </a>.
             </p>
+
+            {syncStatusMsg && (
+              <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-xs font-semibold text-emerald-800">
+                {syncStatusMsg}
+              </div>
+            )}
+
             <pre className="bg-slate-900 text-slate-100 text-xs p-3.5 rounded-xl overflow-x-auto font-mono max-h-48 border border-slate-700">
               {sqlSetupScript}
             </pre>
